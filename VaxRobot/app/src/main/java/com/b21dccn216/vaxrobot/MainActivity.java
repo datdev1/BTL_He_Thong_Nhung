@@ -37,7 +37,6 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothPresenter presenter;
 
     private ArrayList<Pair<String, String>> deviceList = new ArrayList<>();
-    private Pair<Float, Float> robotPosition = new Pair<>(5000f, 5000f);
 
 
     @SuppressLint("ClickableViewAccessibility")
@@ -178,8 +177,7 @@ public class MainActivity extends AppCompatActivity {
                         presenter.setCommandSend("S");
                         return true;
                 }
-                robotPosition = new Pair<>(robotPosition.first, robotPosition.second - 10);
-                binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
+                binding.mapView.updateRobotPosition(0, -1);
                 return false;
             }
         });
@@ -196,8 +194,7 @@ public class MainActivity extends AppCompatActivity {
                         presenter.setCommandSend("S");
                         return true;
                 }
-                robotPosition = new Pair<>(robotPosition.first, robotPosition.second + 10);
-                binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
+                binding.mapView.updateRobotPosition(0, 1);
                 return false;
             }
         });
@@ -215,8 +212,7 @@ public class MainActivity extends AppCompatActivity {
                         presenter.setCommandSend("S");
                         return true;
                 }
-                robotPosition = new Pair<>(robotPosition.first - 10, robotPosition.second);
-                binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
+                binding.mapView.updateRobotPosition(-1, 0);
                 return false;
             }
         });
@@ -234,8 +230,7 @@ public class MainActivity extends AppCompatActivity {
                         presenter.setCommandSend("S");
                         return true;
                 }
-                robotPosition = new Pair<>(robotPosition.first + 10, robotPosition.second);
-                binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
+                binding.mapView.updateRobotPosition(1, 0);
                 return false;
             }
         });
