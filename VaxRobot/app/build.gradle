@@ -4,12 +4,12 @@ plugins {
 
 android {
     namespace 'com.b21dccn216.vaxrobot'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.b21dccn216.vaxrobot"
         minSdk 24
-        targetSdk 34
+        targetSdk 35
         versionCode 1
         versionName "1.0"
 

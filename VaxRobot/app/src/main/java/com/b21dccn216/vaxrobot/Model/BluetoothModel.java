@@ -98,7 +98,7 @@ public class BluetoothModel {
             try {
                 if (outputStream != null && bluetoothSocket != null && bluetoothSocket.isConnected()) {
                     outputStream.write(data.getBytes());
-                    Log.d("Bluetooth", "Sent data: " + data);
+//                    Log.d("DATDEV1", "Sent data: " + data);
                 } else {
                     Log.e("Bluetooth", "Not connected. Cannot send data.");
                 }
