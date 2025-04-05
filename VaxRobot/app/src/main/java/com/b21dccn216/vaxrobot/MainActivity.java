@@ -1,40 +1,46 @@
 package com.b21dccn216.vaxrobot;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothDevice;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Pair;
-import android.widget.ArrayAdapter;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.SeekBar;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
+import com.b21dccn216.vaxrobot.DevicePicking.PickDeviceActivity;
 import com.b21dccn216.vaxrobot.databinding.ActivityMainBinding;
 
 import java.util.ArrayList;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 
 public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
-
+    private ActivityResultLauncher<Intent> devicePickerLauncher;
     private static final int REQUEST_BLUETOOTH_PERMISSIONS = 1;
+
 
     private BluetoothPresenter presenter;
 
-    ArrayList<String> deviceList = new ArrayList<>();
-    private ArrayAdapter<String> adapter;
+    private ArrayList<Pair<String, String>> deviceList = new ArrayList<>();
+    private Pair<Float, Float> robotPosition = new Pair<>(5000f, 5000f);
 
-    private Pair<Float, Float> robotPosition = new Pair<>(0f, 0f);
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -45,86 +51,49 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
         // Khởi tạo presenter
         presenter = new BluetoothPresenter(this, this);
-        // Adapter hiển thị danh sách thiết bị bluetooth đã kết nối
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, deviceList);
-        binding.listView.setAdapter(adapter);
 
         // Request permissions
         requestBluetoothPermissions();
 
-        // Handle insets
-        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+        deviceList = getPairedDevices();
 
-        // Populate paired devices
-        loadPairedDevices();
+        devicePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK) {
+                        Intent data = result.getData();
+                        assert data != null;
+                        int index = data.getIntExtra(PickDeviceActivity.EXTRA_DEVICE_LIST + "index", 0);
+                        Pair<String, String> selected = deviceList.get(index);
 
-        // ListView item click
-        binding.listView.setOnItemClickListener((adapterView, view, i, l) -> {
-            BluetoothDevice[] devicesArray = presenter.getPairedDevice().toArray(new BluetoothDevice[0]);
-            if (i < devicesArray.length) {
-                BluetoothDevice selectedDevice = devicesArray[i];
-                if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    return;
+                        presenter.connectToDevice(selected.first, selected.second);
+                        Toast.makeText(this, "Name: " + selected.second + " Address: " + selected.first, Toast.LENGTH_SHORT).show();
+                        // Do something with the selected device
+                    }
                 }
-                presenter.connectToDevice(selectedDevice.getAddress(), selectedDevice.getName());
-            }
-        });
+        );
 
-        // Control buttons
-        binding.up.setOnClickListener(v -> {
-            presenter.sendCommand("F");
-            robotPosition = new Pair<>(robotPosition.first, robotPosition.second - 10);
-            binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
-        });
-        binding.down.setOnClickListener(v -> {
-            presenter.sendCommand("B");
-            robotPosition = new Pair<>(robotPosition.first, robotPosition.second + 10);
-            binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
-        });
-        binding.left.setOnClickListener(v -> {
-            presenter.sendCommand("L");
-            robotPosition = new Pair<>(robotPosition.first - 10, robotPosition.second);
-            binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
-        });
-        binding.right.setOnClickListener(v -> {
-            presenter.sendCommand("R");
-            robotPosition = new Pair<>(robotPosition.first + 10, robotPosition.second);
-            binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
-        });
+        setUpButton();
+    }
+
+    private ArrayList<Pair<String, String>> getPairedDevices() {
+        ArrayList<Pair<String, String>> res = new ArrayList<>();
+        ArrayList<BluetoothDevice> deviceList = new ArrayList<>(presenter.getPairedDevice());
+        for (BluetoothDevice device : deviceList) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                continue;
+            }
+            res.add(new Pair<>(device.getAddress(), device.getName()));
+        }
+        return res;
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         presenter.disconnect();
-    }
-
-    private void loadPairedDevices() {
-        Set<BluetoothDevice> pairedDevices = presenter.getPairedDevice();
-        deviceList.clear();
-
-        if (pairedDevices != null && !pairedDevices.isEmpty()) {
-            for (BluetoothDevice device : pairedDevices) {
-                if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    continue;
-                }
-                deviceList.add(device.getName() + " - " + device.getAddress());
-            }
-            adapter.notifyDataSetChanged();
-        } else {
-            Toast.makeText(this, "No Paired Devices Found", Toast.LENGTH_SHORT).show();
-        }
     }
 
     private void requestBluetoothPermissions() {
@@ -144,8 +113,6 @@ public class MainActivity extends AppCompatActivity {
             // dialog not support
         }
     }
-
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -159,25 +126,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void showConnectionSuccess(String device) {
-        binding.status.setText("Connected to " + device);
-        binding.status.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+        binding.status.setImageResource(R.drawable.baseline_bluetooth_connected_24);
         Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show();
     }
 
     public void showConnectionFailed() {
-        binding.status.setText("Connection Failed");
-        binding.status.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
+        binding.status.setImageResource(R.drawable.baseline_do_not_disturb_24);
         Toast.makeText(this, "Connection Failed", Toast.LENGTH_SHORT).show();
     }
 
     public void showDisconnected(){
-        binding.status.setText("Disconnected");
-        binding.status.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
+        binding.status.setImageResource(R.drawable.baseline_do_not_disturb_24);
         Toast.makeText(this, "Disconnected", Toast.LENGTH_SHORT).show();
     }
 
     public void showMessage(String message){
-        binding.messages.setText("Message: " + message);
+        binding.messages.setText(message);
 
     }
 
@@ -186,5 +150,142 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    @SuppressLint("ClickableViewAccessibility")
+    private void setUpButton(){
 
+        binding.setting.setOnClickListener(v -> {
+            Intent intent = new Intent(this, PickDeviceActivity.class);
+            ArrayList<String> deviceNameList = deviceList.stream()
+                    .map(pair -> pair.second)
+                    .collect(Collectors.toCollection(ArrayList::new));
+
+            intent.putExtra(PickDeviceActivity.EXTRA_DEVICE_LIST, deviceNameList);
+            devicePickerLauncher.launch(intent);
+
+        });
+        // Control buttons
+
+        binding.up.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                switch (motionEvent.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        // Finger touched the button
+                        presenter.setCommandSend("F");
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                        // Finger lifted off the button
+                        presenter.setCommandSend("S");
+                        return true;
+                }
+                robotPosition = new Pair<>(robotPosition.first, robotPosition.second - 10);
+                binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
+                return false;
+            }
+        });
+        binding.down.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                switch (motionEvent.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        // Finger touched the button
+                        presenter.setCommandSend("B");
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                        // Finger lifted off the button
+                        presenter.setCommandSend("S");
+                        return true;
+                }
+                robotPosition = new Pair<>(robotPosition.first, robotPosition.second + 10);
+                binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
+                return false;
+            }
+        });
+
+        binding.left.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                switch (motionEvent.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        // Finger touched the button
+                        presenter.setCommandSend("L");
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                        // Finger lifted off the button
+                        presenter.setCommandSend("S");
+                        return true;
+                }
+                robotPosition = new Pair<>(robotPosition.first - 10, robotPosition.second);
+                binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
+                return false;
+            }
+        });
+
+        binding.right.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                switch (motionEvent.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        // Finger touched the button
+                        presenter.setCommandSend("R");
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                        // Finger lifted off the button
+                        presenter.setCommandSend("S");
+                        return true;
+                }
+                robotPosition = new Pair<>(robotPosition.first + 10, robotPosition.second);
+                binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
+                return false;
+            }
+        });
+
+//        binding.seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+//            @Override
+//            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+//
+//
+//                String res = "Speed " + String.valueOf(i);
+//                presenter.sendCommand(res);
+//
+//                binding.seekbarValue.setText(i + "");
+//            }
+//
+//            @Override
+//            public void onStartTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//
+//            @Override
+//            public void onStopTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//        });
+//
+//        binding.seekbarDelta.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+//            @Override
+//            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+//
+//
+//                String res = "Delta_speed " + String.valueOf(i-50);
+//                presenter.sendCommand(res);
+//
+//                binding.seekbarDeltaValue.setText("∆ = " +  String.valueOf(i-50));
+//            }
+//
+//            @Override
+//            public void onStartTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//
+//            @Override
+//            public void onStopTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//        });
+
+        binding.delete.setOnClickListener(v -> {
+            presenter.sendCommand("D");
+        });
+    }
 }

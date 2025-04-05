@@ -8,6 +8,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Log;
+import android.util.Pair;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
@@ -24,15 +26,15 @@ import com.b21dccn216.vaxrobot.databinding.ActivityPickDeviceBinding;
 
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class PickDeviceActivity extends AppCompatActivity {
     public static final String EXTRA_DEVICE_LIST = "pairedDevices";
     private ActivityPickDeviceBinding binding;
 
+    private ArrayList<String> deviceList = new ArrayList<>();
 
-    ArrayList<String> deviceList = new ArrayList<>();
     private ArrayAdapter<String> adapter;
-    private Set<BluetoothDevice> pairedDevices;
 
 
     @Override
@@ -40,26 +42,18 @@ public class PickDeviceActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityPickDeviceBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
+        // Lấy danh sách thiết bị đã kết nối
         Intent intent = getIntent();
-        pairedDevices = intent.getParcelableExtra(EXTRA_DEVICE_LIST);
+        deviceList = (ArrayList<String>) intent.getSerializableExtra(EXTRA_DEVICE_LIST);
 
-        if (pairedDevices != null && !pairedDevices.isEmpty()) {
-            for (BluetoothDevice device : pairedDevices) {
-                if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    continue;
-                }
-                deviceList.add(device.getName() + " - " + device.getAddress());
-            }
-            adapter.notifyDataSetChanged();
-        } else {
+        if (deviceList == null || deviceList.isEmpty()) {
             // Tạo alert thông báo không có thiết bị nào đã kết nối
             AlertDialog dialog = new AlertDialog.Builder(this)
                     .setTitle("No Paired Devices Found")
                     .setMessage("Please pair a device and try again.")
-                    .setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    .setNegativeButton("Dismiss", new DialogInterface.OnClickListener() {
                         @Override
-                        public void onDismiss(DialogInterface dialog) {
+                        public void onClick(DialogInterface dialogInterface, int i) {
                             // Set kết quả là fail và kết thúc activity
                             Intent resultIntent = new Intent();
                             setResult(Activity.RESULT_CANCELED, resultIntent);
@@ -68,10 +62,24 @@ public class PickDeviceActivity extends AppCompatActivity {
                     })
                     .create();
             dialog.show();
-
         }
-
+        // Tạo adapter hiển thị danh sách thiết bị
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, deviceList);
         binding.listView.setAdapter(adapter);
+
+        // ListView item click
+        binding.listView.setOnItemClickListener((adapterView, view, i, l) -> {
+
+            Intent resultIntent = new Intent();
+            resultIntent.putExtra(EXTRA_DEVICE_LIST + "index", i);
+            setResult(Activity.RESULT_OK, resultIntent);
+            finish();
+        });
+
+        binding.cancel.setOnClickListener(v -> {
+            Intent resultIntent = new Intent();
+            setResult(Activity.RESULT_CANCELED, resultIntent);
+            finish();
+        });
     }
 }

@@ -17,8 +17,14 @@ import java.util.List;
 
 public class MapView extends View {
 
+    private final float mapSize = 100000f;
+    private final int numGridSize = 1000;
+
     private Paint robotPaint;
+    private Paint gridPaint = new Paint();
     private Paint pathPaint;
+    private Paint borderPaint;
+
     private List<PointF> pathPoints = new ArrayList<>();
     private PointF robotPosition;
 
@@ -53,6 +59,15 @@ public class MapView extends View {
         pathPaint.setColor(Color.BLUE);
         pathPaint.setStrokeWidth(5f);
 
+        gridPaint.setColor(Color.LTGRAY);
+        gridPaint.setStrokeWidth(1f);
+        gridPaint.setAntiAlias(true);
+
+
+        borderPaint = new Paint();
+        borderPaint.setColor(Color.BLACK);
+        borderPaint.setStrokeWidth(10f);
+
         scaleDetector = new ScaleGestureDetector(context, new ScaleListener());
     }
 
@@ -73,11 +88,37 @@ public class MapView extends View {
         if (robotPosition != null) {
             canvas.drawCircle(robotPosition.x, robotPosition.y, 20, robotPaint);
         }
+
+
+        drawGrid(canvas);
+
         canvas.restore();
+    }
+
+    private void drawGrid(Canvas canvas){
+        int gridSize = (int) (mapSize/numGridSize); // Grid cell size
+
+        // Draw vertical lines
+        for (float x = 0; x <= mapSize; x += gridSize) {
+            if(x == 0 || x == mapSize){
+                canvas.drawLine(x, 0, x, mapSize, borderPaint);
+                continue;
+            }
+            canvas.drawLine(x, 0, x, mapSize, gridPaint);
+        }
+        // Draw horizontal lines
+        for (float y = 0; y <= mapSize; y += gridSize) {
+            if(y == 0 || y == mapSize){
+                canvas.drawLine(0, y, mapSize, y, borderPaint);
+                continue;
+            }
+            canvas.drawLine(0, y, mapSize, y, gridPaint);
+        }
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event){
+
         scaleDetector.onTouchEvent(event);
         final int action = event.getAction();
 
@@ -100,6 +141,13 @@ public class MapView extends View {
 
                     translateX += dx;
                     translateY += dy;
+                    float maxTranslateX = 0;
+                    float maxTranslateY = 0;
+                    float minTranslateX = -mapSize * scaleFactor + getWidth();
+                    float minTranslateY = -mapSize * scaleFactor + getHeight();
+
+                    translateX = Math.max(minTranslateX, Math.min(maxTranslateX, translateX));
+                    translateY = Math.max(minTranslateY, Math.min(maxTranslateY, translateY));
 
                     invalidate();
 
@@ -131,20 +179,56 @@ public class MapView extends View {
 
     // Update robot position
     public void updateRobotPosition(float x, float y) {
-        robotPosition = new PointF(x, y);
-        pathPoints.add(robotPosition);
+        float clampedX = Math.max(0, Math.min(mapSize, x));
+        float clampedY = Math.max(0, Math.min(mapSize, y));
+        robotPosition = new PointF(clampedX, clampedY);
+        // center to robot position
+        float viewWidth = getWidth();
+        float viewHeight = getHeight();
 
-        invalidate();  // Refresh the view
+        // Center formula
+        translateX = (viewWidth / 2f) - (x * scaleFactor);
+        translateY = (viewHeight / 2f) - (y * scaleFactor);
+
+        pathPoints.add(robotPosition);
+        invalidate();
     }
 
     private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener{
         @Override
         public boolean onScale(@NonNull ScaleGestureDetector detector) {
+//            scaleFactor *= detector.getScaleFactor();
+//            scaleFactor = Math.max(0.5f, Math.min(scaleFactor, 5.0f));
+//            invalidate();
+//            return true;
+
+
+
+            float focusX = detector.getFocusX();
+            float focusY = detector.getFocusY();
+            float prevScale = scaleFactor;
             scaleFactor *= detector.getScaleFactor();
             scaleFactor = Math.max(0.5f, Math.min(scaleFactor, 5.0f));
+
+            // Adjust translation so zoom keeps the focus point in place
+            translateX += (focusX - translateX) * (1 - scaleFactor / prevScale);
+            translateY += (focusY - translateY) * (1 - scaleFactor / prevScale);
             invalidate();
-            return true;
+            return  true;
         }
     }
+
+    public void centerOnPoint(float x, float y) {
+        // Ensure scaling is considered
+        float viewWidth = getWidth();
+        float viewHeight = getHeight();
+
+        // Center formula
+        translateX = (viewWidth / 2f) - (x * scaleFactor);
+        translateY = (viewHeight / 2f) - (y * scaleFactor);
+
+        invalidate();
+    }
+
 }
 
