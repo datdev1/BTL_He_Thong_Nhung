@@ -1,44 +1,65 @@
 #include "BluetoothSerial.h"
+BluetoothSerial SerialBT;
 
-BluetoothSerial SerialBT; // Khởi tạo đối tượng Bluetooth Serial
+//Encoder
+int enco = 2;
+int dem = 0;
+float rpm = 0;
+float tocdo = 0;
+int timecho = 1000; 
+unsigned long thoigian = 0, hientai = 0;
+void dem_xung() {
+    dem++;
+}
 
-// Cảm biến siêu âm
-#define LEFT_TRIG 13  //white
-#define LEFT_ECHO 12  //brown
 
-#define RIGHT_TRIG 32 // Xanh duong
-#define RIGHT_ECHO 35 // Tims
-
-#define FRONT_TRIG  4// brown 
-#define FRONT_ECHO  2// white 
-
-// Định nghĩa chân điều khiển động cơ
+// Định nghĩa chân điều khiển động cơ l298n   den-gnd    trang-vin
 const int enA = 19;    // xanh la cay
 const int in1 = 27;    // nau
 const int in2 = 26;     // do
 const int in3 = 25;     // cam
 const int in4 = 33;     // vang
 const int enB = 21;    // xanh duong
-
 int speed = 200;
-volatile int distance = 0; // Biến đo khoảng cách
 char dieu_khien;
 
+
+// Cảm biến siêu âm
+#define LEFT_TRIG 13  //trang
+#define LEFT_ECHO 12  //nau
+
+#define RIGHT_TRIG 32 // Xanh duong
+#define RIGHT_ECHO 35 // tim
+
+#define FRONT_TRIG  4// nau 
+#define FRONT_ECHO  2// trang 
+
+
+
 // Task handle cho task đo khoảng cách
+volatile int distance = 0;
 TaskHandle_t distanceTaskHandle;
 
 void setup() {
   Serial.begin(115200);  
-  SerialBT.begin("ESP32_BT");
+  SerialBT.begin("ESP_TEST");
   Serial.println("Bluetooth is ready. Pair with ESP32_BT to start!");
+
+  //car
   pinMode(enA, OUTPUT);
   pinMode(in1, OUTPUT);
   pinMode(in2, OUTPUT);
-  
   pinMode(enB, OUTPUT);
   pinMode(in3, OUTPUT);
   pinMode(in4, OUTPUT);
-  
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, LOW);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, LOW);
+  analogWrite(enA, speed);
+  analogWrite(enB, speed);
+
+  //hc-sr
   pinMode(LEFT_TRIG, OUTPUT);
   pinMode(LEFT_ECHO, INPUT);
   pinMode(RIGHT_TRIG, OUTPUT);
@@ -46,12 +67,9 @@ void setup() {
   pinMode(FRONT_TRIG, OUTPUT);
   pinMode(FRONT_ECHO, INPUT);
 
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, LOW);
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, LOW);
-  analogWrite(enA, speed);
-  analogWrite(enB, speed);
+  //encoder
+  pinMode(enco, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(enco), dem_xung, RISING);
 
   // Tạo task đo khoảng cách trên lõi 0
   xTaskCreatePinnedToCore(
@@ -67,24 +85,40 @@ void setup() {
 
 void loop() {
   // Xử lý tín hiệu Bluetooth từ điện thoại
-   if (distance > 1 && distance < 30) {
-    if (digitalRead(in1) == LOW && digitalRead(in2) == HIGH && digitalRead(in3) == LOW && digitalRead(in4) == HIGH) {
+  //  if (distance > 1 && distance < 30) {
+  //   if (digitalRead(in1) == LOW && digitalRead(in2) == HIGH && digitalRead(in3) == LOW && digitalRead(in4) == HIGH) {
       
+  //   }
+  //   else{
+  //     Stop();
+  //   }
+  // }
+  thoigian = millis();
+    if (thoigian - hientai >= timecho) {
+        hientai = thoigian;
+
+        rpm = ((float)dem / 20.0) * 60.0;
+        tocdo = ((float)dem / 20.0) * (0.066 * 3.14); // Tốc độ (m/s) d*3,14 = cv
+
+        dem = 0;
+
+        Serial.print("RPM: ");
+        Serial.println(rpm);
+        Serial.print("M/S: ");
+        Serial.println(tocdo);
+
     }
-    else{
-      Stop();
-    }
-  }
   if (SerialBT.available()) {
     dieu_khien = SerialBT.read();
-    Serial.println(dieu_khien);
+    // Serial.println(dieu_khien);
     switch (dieu_khien) 
     {
       case 'F':
         if (distance > 1 && distance < 30) Stop();
         else{
               tien();
-              SerialBT.println(distance);
+              SerialBT.printf("Speed: %f;", tocdo);
+              // SerialBT.println(distance);
         } 
         break;
       case 'B':
@@ -128,6 +162,8 @@ void loop() {
         SerialBT.println(distance);
         break;
       case '0':
+        SerialBT.print("RPM: "); SerialBT.println(rpm);
+        SerialBT.print("Speed (m/s): "); SerialBT.println(tocdo);
         SerialBT.println(distance);
         Serial.print("Distance send to server");
         Serial.println(distance);
@@ -166,13 +202,6 @@ int getDistance(int TRIG_PIN, int ECHO_PIN) {
   return distance;
 }
 
-// Các hàm điều khiển động cơ
-void dieuKhienDongCo(bool in1_val, bool in2_val, bool in3_val, bool in4_val) {
-  digitalWrite(in1, in1_val);
-  digitalWrite(in2, in2_val);
-  digitalWrite(in3, in3_val);
-  digitalWrite(in4, in4_val);
-}
 void tien() { dieuKhienDongCo(HIGH, LOW, LOW, HIGH); }
 void lui() { dieuKhienDongCo(LOW, HIGH, HIGH, LOW); }
 void trai() { dieuKhienDongCo(HIGH, LOW, HIGH, LOW); }
@@ -185,15 +214,10 @@ void lui_phai() { dieuKhienDongCo(LOW, LOW, HIGH, LOW);}
 void phai_1() { dieuKhienDongCo(HIGH, LOW, HIGH, LOW); delay(500); tien();}
 void trai_1() { dieuKhienDongCo(LOW, HIGH, LOW, HIGH); delay(500); tien();}
 
-// void tien() { dieuKhienDongCo(HIGH, LOW, HIGH, LOW); }
-// void lui() { dieuKhienDongCo(LOW, HIGH, LOW, HIGH); }
-// void phai() { dieuKhienDongCo(HIGH, LOW, LOW, HIGH); }
-// void trai() { dieuKhienDongCo(LOW, HIGH, HIGH, LOW); }
-// void Stop() { dieuKhienDongCo(LOW, LOW, LOW, LOW); }
-// void tien_trai() { dieuKhienDongCo(LOW, LOW, HIGH, LOW);}
-// void tien_phai() { dieuKhienDongCo(HIGH, LOW, LOW, LOW); }
-// void lui_phai() { dieuKhienDongCo(LOW, HIGH, LOW, LOW);}
-// void lui_trai() { dieuKhienDongCo(LOW, LOW, LOW, HIGH);}
-// void phai_1() { dieuKhienDongCo(HIGH, LOW, LOW, HIGH); delay(500); tien();}
-// void trai_1() { dieuKhienDongCo(LOW, HIGH, HIGH, LOW); delay(500); tien();}
+void dieuKhienDongCo(bool in1_val, bool in2_val, bool in3_val, bool in4_val) {
+  digitalWrite(in1, in1_val);
+  digitalWrite(in2, in2_val);
+  digitalWrite(in3, in3_val);
+  digitalWrite(in4, in4_val);
+}
 
