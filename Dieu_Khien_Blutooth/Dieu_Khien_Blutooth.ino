@@ -1,6 +1,10 @@
 #include "BluetoothSerial.h"
 BluetoothSerial SerialBT;
 
+// Travel_distance
+float travel_distance = 0;
+unsigned long dem2 = 0;
+
 //Encoder
 int enco = 2;
 int dem = 0;
@@ -10,7 +14,9 @@ int timecho = 1000;
 unsigned long thoigian = 0, hientai = 0;
 void dem_xung() {
     dem++;
+    dem2++;
 }
+
 
 
 // Định nghĩa chân điều khiển động cơ l298n   den-gnd    trang-vin
@@ -94,6 +100,7 @@ void loop() {
   //   }
   // }
   thoigian = millis();
+  travel_distance = (((float)dem2 / 20.0) * (6.5 * 3.14));
     if (thoigian - hientai >= timecho) {
         hientai = thoigian;
 
@@ -111,60 +118,56 @@ void loop() {
   if (SerialBT.available()) {
     dieu_khien = SerialBT.read();
     // Serial.println(dieu_khien);
+    SerialBT.printf("Speed: %f; Travel distance: %f\n", tocdo, travel_distance);
     switch (dieu_khien) 
     {
       case 'F':
         if (distance > 1 && distance < 30) Stop();
         else{
               tien();
-              SerialBT.printf("Speed: %f;", tocdo);
               // SerialBT.println(distance);
         } 
         break;
       case 'B':
-        SerialBT.println(distance);
+        // SerialBT.println(distance);
         lui();
         break;
       case 'L':
         trai();
-        SerialBT.println(distance);
-        break;
-      case 'l':
-        trai_1();
-        SerialBT.println(distance);
+        // SerialBT.println(distance);
         break;
       case 'R':
         phai();
-        SerialBT.println(distance);
-        break;
-      case 'r':
-        phai_1();
-        SerialBT.println(distance);
+        // SerialBT.println(distance);
         break;
       case 'I':
         tien_phai();
-        SerialBT.println(distance);
+        // SerialBT.println(distance);
         break;
       case 'G':
         tien_trai();
-        SerialBT.println(distance);
+        // SerialBT.println(distance);
         break;
       case 'J':
         lui_phai();
-        SerialBT.println(distance);
+        // SerialBT.println(distance);
         break;
       case 'H':
         lui_trai();
-        SerialBT.println(distance);
+        // SerialBT.println(distance);
         break;
       case 'S':
         Stop();
-        SerialBT.println(distance);
+        // SerialBT.println(distance);
         break;
+      case 'D':
+        distance = 0;
+        dem2 = 0;
+        Serial.println("Reset!!!");
       case '0':
-        SerialBT.print("RPM: "); SerialBT.println(rpm);
-        SerialBT.print("Speed (m/s): "); SerialBT.println(tocdo);
-        SerialBT.println(distance);
+        // SerialBT.print("RPM: "); SerialBT.println(rpm);
+        // SerialBT.print("Speed (m/s): "); SerialBT.println(tocdo);
+        // SerialBT.println(distance);
         Serial.print("Distance send to server");
         Serial.println(distance);
         break;
@@ -211,8 +214,6 @@ void tien_phai() { dieuKhienDongCo(LOW, LOW, LOW, HIGH);}
 void tien_trai() { dieuKhienDongCo(HIGH, LOW, LOW, LOW); }
 void lui_trai() { dieuKhienDongCo(LOW, HIGH, LOW, LOW);}
 void lui_phai() { dieuKhienDongCo(LOW, LOW, HIGH, LOW);}
-void phai_1() { dieuKhienDongCo(HIGH, LOW, HIGH, LOW); delay(500); tien();}
-void trai_1() { dieuKhienDongCo(LOW, HIGH, LOW, HIGH); delay(500); tien();}
 
 void dieuKhienDongCo(bool in1_val, bool in2_val, bool in3_val, bool in4_val) {
   digitalWrite(in1, in1_val);
