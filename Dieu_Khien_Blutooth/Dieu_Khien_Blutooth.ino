@@ -4,9 +4,10 @@ BluetoothSerial SerialBT;
 // Travel_distance
 float travel_distance = 0;
 unsigned long dem2 = 0;
+float duong_kinh_banh_xe = 6.6;
 
 //Encoder
-int enco = 2;
+int enco = 13;//D-CAM  A-VÀNG
 int dem = 0;
 float rpm = 0;
 float tocdo = 0;
@@ -26,19 +27,25 @@ const int in2 = 26;     // do
 const int in3 = 25;     // cam
 const int in4 = 33;     // vang
 const int enB = 21;    // xanh duong
-int speed = 200;
-char dieu_khien;
+int speed = 120;
+int delta_speed = -14;
+String dieu_khien;
+
 
 
 // Cảm biến siêu âm
-#define LEFT_TRIG 13  //trang
-#define LEFT_ECHO 12  //nau
+#define LEFT_TRIG 12 //nau
+#define LEFT_ECHO 34  //trang
 
-#define RIGHT_TRIG 32 // Xanh duong
-#define RIGHT_ECHO 35 // tim
+#define RIGHT_TRIG 12 // Vang
+#define RIGHT_ECHO 32 // Xanh la
 
-#define FRONT_TRIG  4// nau 
-#define FRONT_ECHO  2// trang 
+#define FRONT_TRIG  12// nau 
+#define FRONT_ECHO  35// trang 
+
+long leftDistance = 0;
+long rightDistance = 0;
+long frontDistance = 0;
 
 
 
@@ -100,12 +107,12 @@ void loop() {
   //   }
   // }
   thoigian = millis();
-  travel_distance = (((float)dem2 / 20.0) * (6.5 * 3.14));
+  travel_distance = (((float)dem2 / 20.0) * (duong_kinh_banh_xe * 3.14));
     if (thoigian - hientai >= timecho) {
         hientai = thoigian;
 
         rpm = ((float)dem / 20.0) * 60.0;
-        tocdo = ((float)dem / 20.0) * (0.066 * 3.14); // Tốc độ (m/s) d*3,14 = cv
+        tocdo = ((float)dem / 20.0) * (duong_kinh_banh_xe/100 * 3.14); // Tốc độ (m/s) d*3,14 = cv
 
         dem = 0;
 
@@ -115,93 +122,98 @@ void loop() {
         Serial.println(tocdo);
 
     }
+  // SerialBT.printf("Speed: %f; Travel distance: %f\n", tocdo, travel_distance);
   if (SerialBT.available()) {
-    dieu_khien = SerialBT.read();
+    dieu_khien = SerialBT.readStringUntil('\n');
+
     // Serial.println(dieu_khien);
-    SerialBT.printf("Speed: %f; Travel distance: %f\n", tocdo, travel_distance);
-    switch (dieu_khien) 
+    if (dieu_khien == "F")
     {
-      case 'F':
-        if (distance > 1 && distance < 30) Stop();
-        else{
-              tien();
-              // SerialBT.println(distance);
-        } 
-        break;
-      case 'B':
-        // SerialBT.println(distance);
-        lui();
-        break;
-      case 'L':
-        trai();
-        // SerialBT.println(distance);
-        break;
-      case 'R':
-        phai();
-        // SerialBT.println(distance);
-        break;
-      case 'I':
-        tien_phai();
-        // SerialBT.println(distance);
-        break;
-      case 'G':
-        tien_trai();
-        // SerialBT.println(distance);
-        break;
-      case 'J':
-        lui_phai();
-        // SerialBT.println(distance);
-        break;
-      case 'H':
-        lui_trai();
-        // SerialBT.println(distance);
-        break;
-      case 'S':
-        Stop();
-        // SerialBT.println(distance);
-        break;
-      case 'D':
-        distance = 0;
-        dem2 = 0;
-        Serial.println("Reset!!!");
-      case '0':
-        // SerialBT.print("RPM: "); SerialBT.println(rpm);
-        // SerialBT.print("Speed (m/s): "); SerialBT.println(tocdo);
-        // SerialBT.println(distance);
-        Serial.print("Distance send to server");
-        Serial.println(distance);
-        break;
+      tien();
     }
+    else if (dieu_khien == "B")
+    {
+      lui();
+    }
+    else if (dieu_khien == "L")
+    {
+      trai();
+    }
+    else if (dieu_khien == "R")
+    {
+      phai();
+    }
+    else if (dieu_khien == "FR")
+    {
+      tien_phai();
+    }
+    else if (dieu_khien == "FL")
+    {
+      tien_trai();
+    }
+    else if (dieu_khien == "BL")
+    {
+      lui_phai();
+    }
+    else if (dieu_khien == "BR")
+    {
+      lui_trai();
+    }
+    else if (dieu_khien == "S")
+    {
+      Stop();
+    }
+    else if (dieu_khien == "D")
+    {
+      travel_distance = 0;
+      dem2 = 0;
+      Serial.println("Reset!!!");
+    }
+    else if (dieu_khien.indexOf("Speed") != -1)
+    {
+      String set_speed = dieu_khien.substring(6, dieu_khien.length());
+      speed = set_speed.toInt();
+      analogWrite(enA, speed);
+      analogWrite(enB, speed + delta_speed);
+    }
+    else if (dieu_khien.indexOf("Delta_speed") != -1)
+    {
+      String set_delta_speed = dieu_khien.substring(12, dieu_khien.length());
+      delta_speed = set_delta_speed.toInt();
+      analogWrite(enA, speed);
+      analogWrite(enB, speed + delta_speed);
+    }
+    SerialBT.printf("Speed of car: %.2f; Travel distance: %.2f; speed of motor: %d\n, Delta_speed: %d, Vòng: %.2f\n leftDistance: %d; rightDistance: %d; frontDistance: %d; ", tocdo, travel_distance, speed, delta_speed, (float)dem2 / 20.0, leftDistance, rightDistance, frontDistance);
   }
 }
 
 // Hàm đo khoảng cách từ cảm biến siêu âm
 void measureDistanceTask(void * parameter) {
   for (;;) {
-    int leftDistance = getDistance(LEFT_TRIG, LEFT_ECHO);
-    int rightDistance = getDistance(RIGHT_TRIG, RIGHT_ECHO);
-    int frontDistance = getDistance(FRONT_TRIG, FRONT_ECHO);
+    // leftDistance = getDistance(LEFT_TRIG, LEFT_ECHO);
+    // rightDistance = getDistance(RIGHT_TRIG, RIGHT_ECHO);
+    frontDistance = getDistance(FRONT_TRIG, FRONT_ECHO);
 
-    distance = frontDistance;  // Mặc định sử dụng cảm biến phía trước
+    // distance = frontDistance;  // Mặc định sử dụng cảm biến phía trước
 
-    // Kiểm tra nếu có vật cản phía trước
-    if (frontDistance > 1 && frontDistance < 30) {
-      Stop();
-    }
+    // // Kiểm tra nếu có vật cản phía trước
+    // if (frontDistance > 1 && frontDistance < 30) {
+    //   Stop();
+    // }
 
     vTaskDelay(100 / portTICK_PERIOD_MS); // Kiểm tra mỗi 100ms
   }
 }
 
 // Hàm đo khoảng cách từ cảm biến siêu âm (không dùng blocking)
-int getDistance(int TRIG_PIN, int ECHO_PIN) {
+long getDistance(int TRIG_PIN, int ECHO_PIN) {
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
   digitalWrite(TRIG_PIN, HIGH);
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
-  long duration = pulseIn(ECHO_PIN, HIGH);
-  int distance = duration * 0.0343 / 2; // Tính khoảng cách (cm)
+  long duration = pulseIn(ECHO_PIN, HIGH)/10000;
+  long distance = duration * 343 / 2; // Tính khoảng cách (cm)
   return distance;
 }
 
