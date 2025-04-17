@@ -5,12 +5,14 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 
 import java.io.IOException;
@@ -32,9 +34,10 @@ public class BluetoothModel {
     private Boolean isListening;
     private Context context;
 
-    public BluetoothModel(Context context) {
+    public BluetoothModel(Context context, BluetoothAdapter bluetoothAdapter) {
         this.context = context;
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        this.bluetoothAdapter = bluetoothAdapter;
+
 
     }
 
