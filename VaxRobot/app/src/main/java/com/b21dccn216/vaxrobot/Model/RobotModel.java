@@ -1,6 +1,11 @@
 package com.b21dccn216.vaxrobot.Model;
 
-public class AxisModel {
+
+/*
+x, y is index of robot in matrix
+angle is the angle between robot and y-axis
+ */
+public class RobotModel {
     private int x;
     private int y;
     private int distance;
@@ -8,17 +13,18 @@ public class AxisModel {
 
     private int squareSize;
 
-    public AxisModel(int x, int y, int squareSize) {
+    public RobotModel(int x, int y, int squareSize) {
         this.x = x;
         this.y = y;
         this.squareSize = squareSize;
     }
 
-    public AxisModel(int x, int y, int distance, float angle) {
+    public RobotModel(int x, int y, int distance, float angle, int squareSize) {
         this.x = x;
         this.y = y;
         this.distance = distance;
         this.angle = angle;
+        this.squareSize = squareSize;
     }
 
     public int getX() {
@@ -60,4 +66,9 @@ public class AxisModel {
     public int getYAxis(){
         return y*squareSize;
     }
+
+
+
+
+
 }

@@ -27,8 +27,6 @@ import com.b21dccn216.vaxrobot.databinding.ActivityMainBinding;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
-import javax.security.auth.callback.Callback;
-
 
 public class MainActivity extends AppCompatActivity implements MainContract.View{
     private ActivityMainBinding binding;
@@ -155,7 +153,6 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                         presenter.setCommandSend("S");
                         return true;
                 }
-                binding.mapView.updateRobotPosition("UP", 2);
                 return false;
             }
         });
@@ -172,46 +169,50 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                         presenter.setCommandSend("S");
                         return true;
                 }
-                binding.mapView.updateRobotPosition("DOWN", 2);
                 return false;
             }
         });
 
-        binding.left.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                switch (motionEvent.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        // Finger touched the button
-                        presenter.setCommandSend("L");
-                        return true;
-                    case MotionEvent.ACTION_UP:
-                        // Finger lifted off the button
-                        presenter.setCommandSend("S");
-                        return true;
-                }
-                binding.mapView.setRobotAngle(binding.mapView.getRobotAngle() - 45);
-                return false;
-            }
+//        binding.left.setOnTouchListener(new View.OnTouchListener() {
+//            @Override
+//            public boolean onTouch(View view, MotionEvent motionEvent) {
+//                switch (motionEvent.getAction()) {
+//                    case MotionEvent.ACTION_DOWN:
+//                        // Finger touched the button
+//                        presenter.setCommandSend("L");
+//                        return true;
+//                    case MotionEvent.ACTION_UP:
+//                        // Finger lifted off the button
+//                        presenter.setCommandSend("S");
+//                        return true;
+//                }
+//                return false;
+//            }
+//        });
+
+        binding.right.setOnClickListener(v -> {
+            setRobotAngle(45);
+        });
+        binding.left.setOnClickListener(v -> {
+            setRobotAngle(-45);
         });
 
-        binding.right.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                switch (motionEvent.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        // Finger touched the button
-                        presenter.setCommandSend("R");
-                        return true;
-                    case MotionEvent.ACTION_UP:
-                        // Finger lifted off the button
-                        presenter.setCommandSend("S");
-                        return true;
-                }
-                binding.mapView.setRobotAngle(binding.mapView.getRobotAngle() + 45);
-                return false;
-            }
-        });
+//        binding.right.setOnTouchListener(new View.OnTouchListener() {
+//            @Override
+//            public boolean onTouch(View view, MotionEvent motionEvent) {
+//                switch (motionEvent.getAction()) {
+//                    case MotionEvent.ACTION_DOWN:
+//                        // Finger touched the button
+//                        presenter.setCommandSend("R");
+//                        return true;
+//                    case MotionEvent.ACTION_UP:
+//                        // Finger lifted off the button
+//                        presenter.setCommandSend("S");
+//                        return true;
+//                }
+//                return false;
+//            }
+//        });
 
 
         binding.delete.setOnClickListener(v -> {
@@ -277,4 +278,16 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                 .create();
         alertDialog.show();
     }
+
+    @Override
+    public void updateRobotPosition(String action, int distance){
+        binding.mapView.updateRobotPosition(action, distance);
+    }
+
+
+    @Override
+    public void setRobotAngle(int deltaAngle){
+        binding.mapView.setRobotAngle(binding.mapView.getRobotAngle() + deltaAngle);
+    }
+
 }

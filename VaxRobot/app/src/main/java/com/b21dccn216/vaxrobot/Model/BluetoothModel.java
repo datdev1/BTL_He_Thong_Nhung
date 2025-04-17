@@ -37,8 +37,6 @@ public class BluetoothModel {
     public BluetoothModel(Context context, BluetoothAdapter bluetoothAdapter) {
         this.context = context;
         this.bluetoothAdapter = bluetoothAdapter;
-
-
     }
 
     public Set<BluetoothDevice> getPairedDevices() {

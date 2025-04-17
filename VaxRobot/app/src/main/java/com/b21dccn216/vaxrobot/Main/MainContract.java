@@ -23,6 +23,10 @@ public interface MainContract {
         void showMessage(String message);
         void showError(String error);
         void showAlertDialog(String title, String message);
+
+        void updateRobotPosition(String action, int distance);
+
+        void setRobotAngle(int deltaAngle);
     }
 
 }

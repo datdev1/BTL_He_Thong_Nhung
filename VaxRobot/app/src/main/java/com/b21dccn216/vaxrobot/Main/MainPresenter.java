@@ -22,7 +22,17 @@ public class MainPresenter implements MainContract.Presenter {
     private BluetoothModel model;
 
     private Handler handler;
+
     private String commandSend = "S";
+    /*  commandSend value meaning:
+                                    F: Forward
+                                    S: Stop
+                                    B: Backward
+                                    L: Left Rotate
+                                    R: Right Rotate
+                                    D: Delete mesage
+         */
+
 
     public MainPresenter(MainActivity view, Context context) {
         this.view = view;
@@ -64,6 +74,24 @@ public class MainPresenter implements MainContract.Presenter {
             public void run() {
                 sendCommand(commandSend);
                 loopHandler();
+
+                switch (commandSend){
+                    case "F":
+//                        TODO: Thay đổi distance
+                        view.updateRobotPosition("UP", 100);
+                        break;
+                    case "B":
+                        view.updateRobotPosition("DOWN", 10);
+                        break;
+                    case "L":
+//                        view.setRobotAngle(-15);
+                        break;
+                    case "R":
+//                        view.setRobotAngle(15);
+                        break;
+                    default:
+                        break;
+                }
             }
         }, 5);
     }
