@@ -1,5 +1,22 @@
 #include "BluetoothSerial.h"
+#include <Wire.h>
+#include <Adafruit_BMP085.h>
+#include <MPU6050.h>
+#include <QMC5883LCompass.h>
+
 BluetoothSerial SerialBT;
+
+//Cam bien GY-87
+Adafruit_BMP085 bmp;
+MPU6050 mpu;
+QMC5883LCompass compass;
+int16_t accelX, accelY, accelZ, gyroX, gyroY, gyroZ;
+int compassX, compassY, compassZ, compassHeading;
+float temp;
+int32_t pressure;
+// SDA Đỏ - 21
+//SCL Nâu - 22
+
 
 // Travel_distance
 float travel_distance = 0;
@@ -21,12 +38,12 @@ void dem_xung() {
 
 
 // Định nghĩa chân điều khiển động cơ l298n   den-gnd    trang-vin
-const int enA = 19;    // xanh la cay
+const int enA = 2;    // xanh la cay 19 old
 const int in1 = 27;    // nau
 const int in2 = 26;     // do
 const int in3 = 25;     // cam
 const int in4 = 33;     // vang
-const int enB = 21;    // xanh duong
+const int enB = 4;    // xanh duong 21 old
 int speed = 120;
 int delta_speed = -14;
 String dieu_khien;
@@ -34,13 +51,13 @@ String dieu_khien;
 
 
 // Cảm biến siêu âm
-#define LEFT_TRIG 12 //nau
+#define LEFT_TRIG 5 //nau
 #define LEFT_ECHO 34  //trang
 
-#define RIGHT_TRIG 12 // Vang
+#define RIGHT_TRIG 23 // Vang
 #define RIGHT_ECHO 32 // Xanh la
 
-#define FRONT_TRIG  12// nau 
+#define FRONT_TRIG  18// nau 
 #define FRONT_ECHO  35// trang 
 
 long leftDistance = 0;
@@ -50,13 +67,37 @@ long frontDistance = 0;
 
 
 // Task handle cho task đo khoảng cách
-volatile int distance = 0;
-TaskHandle_t distanceTaskHandle;
+// volatile int distance = 0;
+TaskHandle_t flow2TaskHandle;
 
 void setup() {
   Serial.begin(115200);  
   SerialBT.begin("ESP_TEST");
   Serial.println("Bluetooth is ready. Pair with ESP32_BT to start!");
+
+  //GY-87
+  Wire.begin(21, 22); // SDA = 21, SCL = 22 (ESP32 default I2C pins)
+  Wire.setClock(100000);
+
+  // BMP180
+  if (!bmp.begin()) {
+    Serial.println("Could not find BMP180 sensor!");
+    while (1);
+  }
+
+  // MPU6050
+  mpu.initialize();
+  if (!mpu.testConnection()) {
+    Serial.println("MPU6050 not connected!");
+    while (1);
+  }
+
+  mpu.setI2CBypassEnabled(true);  
+
+  // QMC5883L (magnetometer)
+  compass.init();
+
+  Serial.println("GY-87 Initialized with Adafruit Libraries");
 
   //car
   pinMode(enA, OUTPUT);
@@ -86,26 +127,17 @@ void setup() {
 
   // Tạo task đo khoảng cách trên lõi 0
   xTaskCreatePinnedToCore(
-    measureDistanceTask, // Hàm thực hiện đo khoảng cách
+    flow2Task, // Hàm thực hiện đo khoảng cách
     "Distance Task",      // Tên task
     1000,                 // Kích thước stack
     NULL,                 // Tham số cho task (không cần)
     1,                    // Mức ưu tiên
-    &distanceTaskHandle,  // Task handle
+    &flow2TaskHandle,  // Task handle
     0                     // Chạy trên lõi 0
   );
 }
 
 void loop() {
-  // Xử lý tín hiệu Bluetooth từ điện thoại
-  //  if (distance > 1 && distance < 30) {
-  //   if (digitalRead(in1) == LOW && digitalRead(in2) == HIGH && digitalRead(in3) == LOW && digitalRead(in4) == HIGH) {
-      
-  //   }
-  //   else{
-  //     Stop();
-  //   }
-  // }
   thoigian = millis();
   travel_distance = (((float)dem2 / 20.0) * (duong_kinh_banh_xe * 3.14));
     if (thoigian - hientai >= timecho) {
@@ -183,37 +215,73 @@ void loop() {
       analogWrite(enA, speed);
       analogWrite(enB, speed + delta_speed);
     }
-    SerialBT.printf("Speed of car: %.2f; Travel distance: %.2f; speed of motor: %d\n, Delta_speed: %d, Vòng: %.2f\n leftDistance: %d; rightDistance: %d; frontDistance: %d; ", tocdo, travel_distance, speed, delta_speed, (float)dem2 / 20.0, leftDistance, rightDistance, frontDistance);
+    sendAllInformation();
   }
 }
 
-// Hàm đo khoảng cách từ cảm biến siêu âm
-void measureDistanceTask(void * parameter) {
+void sendAllInformation()
+{
+  String message = "";
+
+  // Nối từng phần tùy nhu cầu — có thể bật/tắt bằng cách comment
+  message += "SpeedCar: " + String(tocdo, 2) + "; ";
+  message += "TravelDistance: " + String(travel_distance, 2) + "\n";
+  message += "SpeedMotor: " + String(speed) + "; ";
+  message += "Delta_speed: " + String(delta_speed) + "; ";
+  message += "Vong: " + String((float)dem2 / 20.0, 2) + "\n";
+  // Dữ liệu cảm biến siêu âm
+  message += "Ultrasonic: [Left: " + String(leftDistance)
+           + "; Right: " + String(rightDistance)
+           + "; Front: " + String(frontDistance) + "]\n";
+
+  // Dữ liệu gia tốc
+  message += "Accel: [X: " + String(accelX)
+           + "; Y: " + String(accelY)
+           + "; Z: " + String(accelZ) + "]\n";
+
+  // Dữ liệu con quay hồi chuyển
+  message += "Gyro: [X: " + String(gyroX)
+           + "; Y: " + String(gyroY)
+           + "; Z: " + String(gyroZ) + "]\n";
+
+  // Dữ liệu la bàn
+  message += "Compass: [X: " + String(compassX)
+           + "; Y: " + String(compassY)
+           + "; Z: " + String(compassZ)
+           + "; Heading: " + String(compassHeading) + "]\n";
+
+  // Gửi qua Bluetooth
+  SerialBT.print(message);
+}
+
+void flow2Task(void * parameter) {
   for (;;) {
-    // leftDistance = getDistance(LEFT_TRIG, LEFT_ECHO);
-    // rightDistance = getDistance(RIGHT_TRIG, RIGHT_ECHO);
+  // Hàm đo khoảng cách từ cảm biến siêu âm
+    leftDistance = getDistance(LEFT_TRIG, LEFT_ECHO);
+    rightDistance = getDistance(RIGHT_TRIG, RIGHT_ECHO);
     frontDistance = getDistance(FRONT_TRIG, FRONT_ECHO);
-
-    // distance = frontDistance;  // Mặc định sử dụng cảm biến phía trước
-
-    // // Kiểm tra nếu có vật cản phía trước
-    // if (frontDistance > 1 && frontDistance < 30) {
-    //   Stop();
-    // }
+  // GY-87
+    mpu.getMotion6(&accelX, &accelY, &accelZ, &gyroX, &gyroY, &gyroZ);
+    temp = bmp.readTemperature();
+    pressure = bmp.readPressure();
+    compass.read();
+    compassX = compass.getX();
+    compassY = compass.getY();
+    compassZ = compass.getZ();
+    compassHeading = compass.getAzimuth();
 
     vTaskDelay(100 / portTICK_PERIOD_MS); // Kiểm tra mỗi 100ms
-  }
+  };
 }
 
-// Hàm đo khoảng cách từ cảm biến siêu âm (không dùng blocking)
 long getDistance(int TRIG_PIN, int ECHO_PIN) {
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
   digitalWrite(TRIG_PIN, HIGH);
-  delayMicroseconds(10);
+  delayMicroseconds(5);
   digitalWrite(TRIG_PIN, LOW);
-  long duration = pulseIn(ECHO_PIN, HIGH)/10000;
-  long distance = duration * 343 / 2; // Tính khoảng cách (cm)
+  long duration = pulseIn(ECHO_PIN, HIGH);
+  long distance = int(duration/2/29.412); // Tính khoảng cách (cm)
   return distance;
 }
 
