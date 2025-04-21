@@ -2,31 +2,16 @@ package com.b21dccn216.vaxrobot.DevicePicking;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Dialog;
-import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.util.Log;
-import android.util.Pair;
 import android.widget.ArrayAdapter;
-import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
-import com.b21dccn216.vaxrobot.BluetoothPresenter;
-import com.b21dccn216.vaxrobot.R;
 import com.b21dccn216.vaxrobot.databinding.ActivityPickDeviceBinding;
 
 import java.util.ArrayList;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class PickDeviceActivity extends AppCompatActivity {
     public static final String EXTRA_DEVICE_LIST = "pairedDevices";

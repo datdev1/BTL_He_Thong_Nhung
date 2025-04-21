@@ -1,4 +1,4 @@
-package com.b21dccn216.vaxrobot;
+package com.b21dccn216.vaxrobot.Main;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -7,37 +7,36 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Pair;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.SeekBar;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import com.b21dccn216.vaxrobot.DevicePicking.PickDeviceActivity;
+import com.b21dccn216.vaxrobot.R;
 import com.b21dccn216.vaxrobot.databinding.ActivityMainBinding;
 
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements MainContract.View{
     private ActivityMainBinding binding;
     private ActivityResultLauncher<Intent> devicePickerLauncher;
     private static final int REQUEST_BLUETOOTH_PERMISSIONS = 1;
 
 
-    private BluetoothPresenter presenter;
+    private MainPresenter presenter;
 
     private ArrayList<Pair<String, String>> deviceList = new ArrayList<>();
-    private Pair<Float, Float> robotPosition = new Pair<>(5000f, 5000f);
 
 
     @SuppressLint("ClickableViewAccessibility")
@@ -50,12 +49,10 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         // Khởi tạo presenter
-        presenter = new BluetoothPresenter(this, this);
+        presenter = new MainPresenter(this, this);
 
         // Request permissions
         requestBluetoothPermissions();
-
-        deviceList = getPairedDevices();
 
         devicePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -113,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
             // dialog not support
         }
     }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -125,35 +123,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void showConnectionSuccess(String device) {
-        binding.status.setImageResource(R.drawable.baseline_bluetooth_connected_24);
-        Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show();
-    }
-
-    public void showConnectionFailed() {
-        binding.status.setImageResource(R.drawable.baseline_do_not_disturb_24);
-        Toast.makeText(this, "Connection Failed", Toast.LENGTH_SHORT).show();
-    }
-
-    public void showDisconnected(){
-        binding.status.setImageResource(R.drawable.baseline_do_not_disturb_24);
-        Toast.makeText(this, "Disconnected", Toast.LENGTH_SHORT).show();
-    }
-
-    public void showMessage(String message){
-        binding.messages.setText(message);
-
-    }
-
-    public void showError(String error){
-        binding.messages.setText("Error: " + error);
-    }
 
 
     @SuppressLint("ClickableViewAccessibility")
     private void setUpButton(){
-
         binding.setting.setOnClickListener(v -> {
+            deviceList = getPairedDevices();
             Intent intent = new Intent(this, PickDeviceActivity.class);
             ArrayList<String> deviceNameList = deviceList.stream()
                     .map(pair -> pair.second)
@@ -178,8 +153,6 @@ public class MainActivity extends AppCompatActivity {
                         presenter.setCommandSend("S");
                         return true;
                 }
-                robotPosition = new Pair<>(robotPosition.first, robotPosition.second - 10);
-                binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
                 return false;
             }
         });
@@ -196,96 +169,125 @@ public class MainActivity extends AppCompatActivity {
                         presenter.setCommandSend("S");
                         return true;
                 }
-                robotPosition = new Pair<>(robotPosition.first, robotPosition.second + 10);
-                binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
                 return false;
             }
         });
 
-        binding.left.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                switch (motionEvent.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        // Finger touched the button
-                        presenter.setCommandSend("L");
-                        return true;
-                    case MotionEvent.ACTION_UP:
-                        // Finger lifted off the button
-                        presenter.setCommandSend("S");
-                        return true;
-                }
-                robotPosition = new Pair<>(robotPosition.first - 10, robotPosition.second);
-                binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
-                return false;
-            }
-        });
-
-        binding.right.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                switch (motionEvent.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        // Finger touched the button
-                        presenter.setCommandSend("R");
-                        return true;
-                    case MotionEvent.ACTION_UP:
-                        // Finger lifted off the button
-                        presenter.setCommandSend("S");
-                        return true;
-                }
-                robotPosition = new Pair<>(robotPosition.first + 10, robotPosition.second);
-                binding.mapView.updateRobotPosition(robotPosition.first, robotPosition.second);
-                return false;
-            }
-        });
-
-//        binding.seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+//        binding.left.setOnTouchListener(new View.OnTouchListener() {
 //            @Override
-//            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-//
-//
-//                String res = "Speed " + String.valueOf(i);
-//                presenter.sendCommand(res);
-//
-//                binding.seekbarValue.setText(i + "");
-//            }
-//
-//            @Override
-//            public void onStartTrackingTouch(SeekBar seekBar) {
-//
-//            }
-//
-//            @Override
-//            public void onStopTrackingTouch(SeekBar seekBar) {
-//
+//            public boolean onTouch(View view, MotionEvent motionEvent) {
+//                switch (motionEvent.getAction()) {
+//                    case MotionEvent.ACTION_DOWN:
+//                        // Finger touched the button
+//                        presenter.setCommandSend("L");
+//                        return true;
+//                    case MotionEvent.ACTION_UP:
+//                        // Finger lifted off the button
+//                        presenter.setCommandSend("S");
+//                        return true;
+//                }
+//                return false;
 //            }
 //        });
-//
-//        binding.seekbarDelta.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+
+        binding.right.setOnClickListener(v -> {
+            setRobotAngle(45);
+        });
+        binding.left.setOnClickListener(v -> {
+            setRobotAngle(-45);
+        });
+
+//        binding.right.setOnTouchListener(new View.OnTouchListener() {
 //            @Override
-//            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-//
-//
-//                String res = "Delta_speed " + String.valueOf(i-50);
-//                presenter.sendCommand(res);
-//
-//                binding.seekbarDeltaValue.setText("∆ = " +  String.valueOf(i-50));
-//            }
-//
-//            @Override
-//            public void onStartTrackingTouch(SeekBar seekBar) {
-//
-//            }
-//
-//            @Override
-//            public void onStopTrackingTouch(SeekBar seekBar) {
-//
+//            public boolean onTouch(View view, MotionEvent motionEvent) {
+//                switch (motionEvent.getAction()) {
+//                    case MotionEvent.ACTION_DOWN:
+//                        // Finger touched the button
+//                        presenter.setCommandSend("R");
+//                        return true;
+//                    case MotionEvent.ACTION_UP:
+//                        // Finger lifted off the button
+//                        presenter.setCommandSend("S");
+//                        return true;
+//                }
+//                return false;
 //            }
 //        });
+
 
         binding.delete.setOnClickListener(v -> {
             presenter.sendCommand("D");
         });
     }
+
+    // Optional: handle result from enable request
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1233) {
+            if (resultCode == RESULT_OK) {
+                Toast.makeText(this, "Bluetooth Enabled", Toast.LENGTH_SHORT).show();
+                presenter.init();
+            } else {
+                Toast.makeText(this, "Bluetooth not enabled", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+//
+//    Implementation of View
+//
+    @Override
+    public void showConnectionSuccess(String device) {
+        binding.status.setImageResource(R.drawable.baseline_bluetooth_connected_24);
+        Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void showConnectionFailed() {
+        binding.status.setImageResource(R.drawable.baseline_do_not_disturb_24);
+        Toast.makeText(this, "Connection Failed", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void showDisconnected(){
+        binding.status.setImageResource(R.drawable.baseline_do_not_disturb_24);
+        Toast.makeText(this, "Disconnected", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void showMessage(String message){
+        binding.messages.setText(message);
+
+    }
+
+    @Override
+    public void showError(String error){
+        binding.messages.setText("Error: " + error);
+    }
+
+
+    @Override
+    public void showAlertDialog(String title, String message ){
+        AlertDialog alertDialog = new AlertDialog.Builder(getApplicationContext())
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("OK", (dialog, which) -> {
+                    dialog.dismiss();
+                })
+                .create();
+        alertDialog.show();
+    }
+
+    @Override
+    public void updateRobotPosition(String action, int distance){
+        binding.mapView.updateRobotPosition(action, distance);
+    }
+
+
+    @Override
+    public void setRobotAngle(int deltaAngle){
+        binding.mapView.setRobotAngle(binding.mapView.getRobotAngle() + deltaAngle);
+    }
+
 }
