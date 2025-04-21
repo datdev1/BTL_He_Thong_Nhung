@@ -6,7 +6,7 @@
 
 BluetoothSerial SerialBT;
 
-//Cam bien GY-87
+// Cam bien GY-87
 Adafruit_BMP085 bmp;
 MPU6050 mpu;
 QMC5883LCompass compass;
@@ -15,91 +15,90 @@ int compassX, compassY, compassZ, compassHeading;
 float temp;
 int32_t pressure;
 // SDA Đỏ - 21
-//SCL Nâu - 22
-
+// SCL Nâu - 22
 
 // Travel_distance
 float travel_distance = 0;
 unsigned long dem2 = 0;
 float duong_kinh_banh_xe = 6.6;
 
-//Encoder
-int enco = 13;//D-CAM  A-VÀNG
+// Encoder
+int enco = 13; // D-CAM  A-VÀNG
 int dem = 0;
 float rpm = 0;
 float tocdo = 0;
-int timecho = 1000; 
+int timecho = 1000;
 unsigned long thoigian = 0, hientai = 0;
-void dem_xung() {
-    dem++;
-    dem2++;
+void dem_xung()
+{
+  dem++;
+  dem2++;
 }
 
-
-
 // Định nghĩa chân điều khiển động cơ l298n   den-gnd    trang-vin
-const int enA = 2;    // xanh la cay 19 old
-const int in1 = 27;    // nau
-const int in2 = 26;     // do
-const int in3 = 25;     // cam
-const int in4 = 33;     // vang
-const int enB = 4;    // xanh duong 21 old
+const int enA = 2;  // xanh la cay 19 old
+const int in1 = 27; // nau
+const int in2 = 26; // do
+const int in3 = 25; // cam
+const int in4 = 33; // vang
+const int enB = 4;  // xanh duong 21 old
 int speed = 120;
 int delta_speed = -14;
 String dieu_khien;
 
-
-
 // Cảm biến siêu âm
-#define LEFT_TRIG 5 //nau
-#define LEFT_ECHO 34  //trang
+#define LEFT_TRIG 5  // nau
+#define LEFT_ECHO 34 // trang
 
 #define RIGHT_TRIG 23 // Vang
 #define RIGHT_ECHO 32 // Xanh la
 
-#define FRONT_TRIG  18// nau 
-#define FRONT_ECHO  35// trang 
+#define FRONT_TRIG 18 // nau
+#define FRONT_ECHO 35 // trang
 
 long leftDistance = 0;
 long rightDistance = 0;
 long frontDistance = 0;
 
-
-
 // Task handle cho task đo khoảng cách
 // volatile int distance = 0;
 TaskHandle_t flow2TaskHandle;
 
-void setup() {
-  Serial.begin(115200);  
+void setup()
+{
+  Serial.begin(115200);
   SerialBT.begin("ESP_TEST");
   Serial.println("Bluetooth is ready. Pair with ESP32_BT to start!");
 
-  //GY-87
+  // GY-87
   Wire.begin(21, 22); // SDA = 21, SCL = 22 (ESP32 default I2C pins)
   Wire.setClock(100000);
 
   // BMP180
-  if (!bmp.begin()) {
+  if (!bmp.begin())
+  {
     Serial.println("Could not find BMP180 sensor!");
-    while (1);
+    while (1)
+      ;
   }
 
   // MPU6050
   mpu.initialize();
-  if (!mpu.testConnection()) {
+  if (!mpu.testConnection())
+  {
     Serial.println("MPU6050 not connected!");
-    while (1);
+    while (1)
+      ;
   }
 
-  mpu.setI2CBypassEnabled(true);  
+  mpu.setI2CBypassEnabled(true);
 
   // QMC5883L (magnetometer)
   compass.init();
 
   Serial.println("GY-87 Initialized with Adafruit Libraries");
 
-  //car
+  // car
   pinMode(enA, OUTPUT);
   pinMode(in1, OUTPUT);
   pinMode(in2, OUTPUT);
@@ -113,7 +112,7 @@ void setup() {
   analogWrite(enA, speed);
   analogWrite(enB, speed);
 
-  //hc-sr
+  // hc-sr
   pinMode(LEFT_TRIG, OUTPUT);
   pinMode(LEFT_ECHO, INPUT);
   pinMode(RIGHT_TRIG, OUTPUT);
@@ -121,41 +120,45 @@ void setup() {
   pinMode(FRONT_TRIG, OUTPUT);
   pinMode(FRONT_ECHO, INPUT);
 
-  //encoder
+  // encoder
   pinMode(enco, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(enco), dem_xung, RISING);
 
   // Tạo task đo khoảng cách trên lõi 0
   xTaskCreatePinnedToCore(
-    flow2Task, // Hàm thực hiện đo khoảng cách
-    "Distance Task",      // Tên task
-    1000,                 // Kích thước stack
-    NULL,                 // Tham số cho task (không cần)
-    1,                    // Mức ưu tiên
-    &flow2TaskHandle,  // Task handle
-    0                     // Chạy trên lõi 0
+      flow2Task,        // Hàm thực hiện đo khoảng cách
+      "Distance Task",  // Tên task
+      1000,             // Kích thước stack
+      NULL,             // Tham số cho task (không cần)
+      1,                // Mức ưu tiên
+      &flow2TaskHandle, // Task handle
+      0                 // Chạy trên lõi 0
   );
 }
 
-void loop() {
+void loop()
+{
   thoigian = millis();
+
   travel_distance = (((float)dem2 / 20.0) * (duong_kinh_banh_xe * 3.14));
-    if (thoigian - hientai >= timecho) {
-        hientai = thoigian;
 
-        rpm = ((float)dem / 20.0) * 60.0;
-        tocdo = ((float)dem / 20.0) * (duong_kinh_banh_xe/100 * 3.14); // Tốc độ (m/s) d*3,14 = cv
+  if (thoigian - hientai >= timecho)
+  {
+    hientai = thoigian;
 
-        dem = 0;
+    rpm = ((float)dem / 20.0) * 60.0;
+    tocdo = ((float)dem / 20.0) * (duong_kinh_banh_xe / 100 * 3.14); // Tốc độ (m/s) d*3,14 = cv
 
-        Serial.print("RPM: ");
-        Serial.println(rpm);
-        Serial.print("M/S: ");
-        Serial.println(tocdo);
+    dem = 0;
 
-    }
+    Serial.print("RPM: ");
+    Serial.println(rpm);
+    Serial.print("M/S: ");
+    Serial.println(tocdo);
+  }
   // SerialBT.printf("Speed: %f; Travel distance: %f\n", tocdo, travel_distance);
-  if (SerialBT.available()) {
+  if (SerialBT.available())
+  {
     dieu_khien = SerialBT.readStringUntil('\n');
 
     // Serial.println(dieu_khien);
@@ -230,37 +233,30 @@ void sendAllInformation()
   message += "Delta_speed: " + String(delta_speed) + "; ";
   message += "Vong: " + String((float)dem2 / 20.0, 2) + "\n";
   // Dữ liệu cảm biến siêu âm
-  message += "Ultrasonic: [Left: " + String(leftDistance)
-           + "; Right: " + String(rightDistance)
-           + "; Front: " + String(frontDistance) + "]\n";
+  message += "Ultrasonic: [Left: " + String(leftDistance) + "; Right: " + String(rightDistance) + "; Front: " + String(frontDistance) + "]\n";
 
   // Dữ liệu gia tốc
-  message += "Accel: [X: " + String(accelX)
-           + "; Y: " + String(accelY)
-           + "; Z: " + String(accelZ) + "]\n";
+  message += "Accel: [X: " + String(accelX) + "; Y: " + String(accelY) + "; Z: " + String(accelZ) + "]\n";
 
   // Dữ liệu con quay hồi chuyển
-  message += "Gyro: [X: " + String(gyroX)
-           + "; Y: " + String(gyroY)
-           + "; Z: " + String(gyroZ) + "]\n";
+  message += "Gyro: [X: " + String(gyroX) + "; Y: " + String(gyroY) + "; Z: " + String(gyroZ) + "]\n";
 
   // Dữ liệu la bàn
-  message += "Compass: [X: " + String(compassX)
-           + "; Y: " + String(compassY)
-           + "; Z: " + String(compassZ)
-           + "; Heading: " + String(compassHeading) + "]\n";
+  message += "Compass: [X: " + String(compassX) + "; Y: " + String(compassY) + "; Z: " + String(compassZ) + "; Heading: " + String(compassHeading) + "]\n";
 
   // Gửi qua Bluetooth
   SerialBT.print(message);
 }
 
-void flow2Task(void * parameter) {
-  for (;;) {
-  // Hàm đo khoảng cách từ cảm biến siêu âm
+void flow2Task(void *parameter)
+{
+  for (;;)
+  {
+    // Hàm đo khoảng cách từ cảm biến siêu âm
     leftDistance = getDistance(LEFT_TRIG, LEFT_ECHO);
     rightDistance = getDistance(RIGHT_TRIG, RIGHT_ECHO);
     frontDistance = getDistance(FRONT_TRIG, FRONT_ECHO);
-  // GY-87
+    // GY-87
     mpu.getMotion6(&accelX, &accelY, &accelZ, &gyroX, &gyroY, &gyroZ);
     temp = bmp.readTemperature();
     pressure = bmp.readPressure();
@@ -274,14 +270,15 @@ void flow2Task(void * parameter) {
   };
 }
 
-long getDistance(int TRIG_PIN, int ECHO_PIN) {
+long getDistance(int TRIG_PIN, int ECHO_PIN)
+{
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
   digitalWrite(TRIG_PIN, HIGH);
   delayMicroseconds(5);
   digitalWrite(TRIG_PIN, LOW);
   long duration = pulseIn(ECHO_PIN, HIGH);
-  long distance = int(duration/2/29.412); // Tính khoảng cách (cm)
+  long distance = int(duration / 2 / 29.412); // Tính khoảng cách (cm)
   return distance;
 }
 
@@ -290,15 +287,15 @@ void lui() { dieuKhienDongCo(LOW, HIGH, HIGH, LOW); }
 void trai() { dieuKhienDongCo(HIGH, LOW, HIGH, LOW); }
 void phai() { dieuKhienDongCo(LOW, HIGH, LOW, HIGH); }
 void Stop() { dieuKhienDongCo(LOW, LOW, LOW, LOW); }
-void tien_phai() { dieuKhienDongCo(LOW, LOW, LOW, HIGH);}
+void tien_phai() { dieuKhienDongCo(LOW, LOW, LOW, HIGH); }
 void tien_trai() { dieuKhienDongCo(HIGH, LOW, LOW, LOW); }
-void lui_trai() { dieuKhienDongCo(LOW, HIGH, LOW, LOW);}
-void lui_phai() { dieuKhienDongCo(LOW, LOW, HIGH, LOW);}
+void lui_trai() { dieuKhienDongCo(LOW, HIGH, LOW, LOW); }
+void lui_phai() { dieuKhienDongCo(LOW, LOW, HIGH, LOW); }
 
-void dieuKhienDongCo(bool in1_val, bool in2_val, bool in3_val, bool in4_val) {
+void dieuKhienDongCo(bool in1_val, bool in2_val, bool in3_val, bool in4_val)
+{
   digitalWrite(in1, in1_val);
   digitalWrite(in2, in2_val);
   digitalWrite(in3, in3_val);
   digitalWrite(in4, in4_val);
 }
-
