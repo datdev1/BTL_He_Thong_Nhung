@@ -29,6 +29,7 @@ public class MainPresenter implements MainContract.Presenter {
 
 
     private boolean isShowSeekBaGroup = true;
+    private boolean isSettingCompass = false;
 
     private String commandSend = "S";
     /*  commandSend value meaning:
@@ -219,7 +220,25 @@ public class MainPresenter implements MainContract.Presenter {
 
     public void setIsShowSeekBarGroup(boolean isShow){
         view.setVisibleSeekBarGroup(isShow);
+        isShowSeekBaGroup = isShow;
     }
 
+    public boolean isSettingCompass() {
+        return isSettingCompass;
+    }
 
+    public void setSettingCompass(boolean settingCompass) {
+        isSettingCompass = settingCompass;
+        if(settingCompass){
+            sendCommand("calculatingCalibration");
+            view.toastMessage("calculatingCalibration");
+            return;
+        }
+        sendCommand("resetCalibration");
+        view.toastMessage("resetCalibration");
+    }
+
+    public boolean isShowSeekBaGroup() {
+        return isShowSeekBaGroup;
+    }
 }

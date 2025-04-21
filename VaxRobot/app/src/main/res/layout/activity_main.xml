@@ -47,6 +47,13 @@
             android:layout_height="32dp"
             android:src="@drawable/baseline_do_not_disturb_24"
             android:layout_margin="8dp" />
+
+        <ImageView
+            android:id="@+id/select"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/baseline_info_24"
+            android:layout_margin="8dp" />
     </LinearLayout>
 
 
@@ -75,7 +82,7 @@
             android:id="@+id/seekbarGroup"
             android:orientation="vertical"
             android:layout_width="match_parent"
-            android:layout_weight="0.6"
+            android:layout_weight="0.5"
             android:gravity="center_vertical"
             android:layout_height="0dp">
 

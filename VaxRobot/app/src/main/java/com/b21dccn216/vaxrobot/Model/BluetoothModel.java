@@ -149,7 +149,7 @@ public class BluetoothModel {
                 Log.e("Bluetooth", "Error during disconnect", e);
             }
         });
-        executorService.shutdown();
+//        executorService.shutdown();
     }
 
     public interface ConnectionCallBack{

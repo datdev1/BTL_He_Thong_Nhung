@@ -27,6 +27,7 @@ import androidx.core.content.ContextCompat;
 
 import com.b21dccn216.vaxrobot.DevicePicking.PickDeviceActivity;
 import com.b21dccn216.vaxrobot.R;
+import com.b21dccn216.vaxrobot.Setting.SettingActivity;
 import com.b21dccn216.vaxrobot.databinding.ActivityMainBinding;
 
 import java.util.ArrayList;
@@ -145,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
 
     @SuppressLint("ClickableViewAccessibility")
     private void setUpButton(){
-        binding.setting.setOnClickListener(v -> {
+        binding.select.setOnClickListener(v -> {
             deviceList = getPairedDevices();
             Intent intent = new Intent(this, PickDeviceActivity.class);
             ArrayList<String> deviceNameList = deviceList.stream()
@@ -156,6 +157,12 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             devicePickerLauncher.launch(intent);
 
         });
+
+        binding.setting.setOnClickListener( v-> {
+            Intent intent = new Intent(this, SettingActivity.class);
+            startActivity(intent);
+        });
+
         // Control buttons
 
         binding.up.setOnTouchListener(new View.OnTouchListener() {
@@ -386,5 +393,9 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
 
     public void setVisibleSeekBarGroup(boolean isShow){
         binding.seekbarGroup.setVisibility(isShow ? View.VISIBLE : View.GONE);
+    }
+
+    public void toastMessage(String mess){
+        Toast.makeText(this, mess, Toast.LENGTH_SHORT).show();
     }
 }
