@@ -10,10 +10,15 @@ BluetoothSerial SerialBT;
 Adafruit_BMP085 bmp;
 MPU6050 mpu;
 QMC5883LCompass compass;
-int16_t accelX, accelY, accelZ, gyroX, gyroY, gyroZ;
-int compassX, compassY, compassZ, compassHeading;
-float temp;
-int32_t pressure;
+// Cảm biến gia tốc
+int16_t accelX = 0, accelY = 0, accelZ = 0;
+// Con quay hồi chuyển
+int16_t gyroX = 0, gyroY = 0, gyroZ = 0;
+// La bàn
+int compassX = 0, compassY = 0, compassZ = 0, compassHeading = 0;
+// Cảm biến môi trường
+float temp = 0.0;
+int32_t pressure = 0;
 // SDA Đỏ - 21
 //SCL Nâu - 22
 
@@ -68,7 +73,7 @@ long frontDistance = 0;
 
 // Task handle cho task đo khoảng cách
 // volatile int distance = 0;
-TaskHandle_t flow2TaskHandle;
+TaskHandle_t flowTaskHandle;
 
 void setup() {
   Serial.begin(115200);  
@@ -76,28 +81,28 @@ void setup() {
   Serial.println("Bluetooth is ready. Pair with ESP32_BT to start!");
 
   //GY-87
-  Wire.begin(21, 22); // SDA = 21, SCL = 22 (ESP32 default I2C pins)
-  Wire.setClock(100000);
+    Wire.begin(21, 22); // SDA = 21, SCL = 22 (ESP32 default I2C pins)
+    Wire.setClock(100000);
 
-  // BMP180
-  if (!bmp.begin()) {
-    Serial.println("Could not find BMP180 sensor!");
-    while (1);
-  }
+    // BMP180
+    if (!bmp.begin()) {
+      Serial.println("Could not find BMP180 sensor!");
+      while (1);
+    }
 
-  // MPU6050
-  mpu.initialize();
-  if (!mpu.testConnection()) {
-    Serial.println("MPU6050 not connected!");
-    while (1);
-  }
+    // MPU6050
+    mpu.initialize();
+    if (!mpu.testConnection()) {
+      Serial.println("MPU6050 not connected!");
+      while (1);
+    }
 
-  mpu.setI2CBypassEnabled(true);  
+    mpu.setI2CBypassEnabled(true);  
 
-  // QMC5883L (magnetometer)
-  compass.init();
+    // QMC5883L (magnetometer)
+    compass.init();
 
-  Serial.println("GY-87 Initialized with Adafruit Libraries");
+    Serial.println("GY-87 Initialized with Adafruit Libraries");
 
   //car
   pinMode(enA, OUTPUT);
@@ -127,14 +132,24 @@ void setup() {
 
   // Tạo task đo khoảng cách trên lõi 0
   xTaskCreatePinnedToCore(
-    flow2Task, // Hàm thực hiện đo khoảng cách
-    "Distance Task",      // Tên task
-    1000,                 // Kích thước stack
+    flowTask, // Hàm thực hiện đo khoảng cách
+    "Flow Task",      // Tên task
+    5000,                 // Kích thước stack
     NULL,                 // Tham số cho task (không cần)
     1,                    // Mức ưu tiên
-    &flow2TaskHandle,  // Task handle
+    &flowTaskHandle,  // Task handle
     0                     // Chạy trên lõi 0
   );
+
+  // xTaskCreatePinnedToCore(
+  //   gy87Task,             // Task function
+  //   "GY-87 Task",         // Name
+  //   4000,                 // Stack size (tùy RAM, bạn có thể tăng nếu lỗi)
+  //   NULL,                 // Parameter
+  //   1,                    // Priority
+  //   &gy87TaskHandle,      // Task handle
+  //   0                     // Core 0
+  // );
 }
 
 void loop() {
@@ -224,8 +239,8 @@ void sendAllInformation()
   String message = "";
 
   // Nối từng phần tùy nhu cầu — có thể bật/tắt bằng cách comment
-  message += "SpeedCar: " + String(tocdo, 2) + "; ";
-  message += "TravelDistance: " + String(travel_distance, 2) + "\n";
+  message += "Speed: " + String(tocdo, 2) + "; ";
+  message += "TravelDis: " + String(travel_distance, 2) + "\n";
   message += "SpeedMotor: " + String(speed) + "; ";
   message += "Delta_speed: " + String(delta_speed) + "; ";
   message += "Vong: " + String((float)dem2 / 20.0, 2) + "\n";
@@ -248,13 +263,13 @@ void sendAllInformation()
   message += "Compass: [X: " + String(compassX)
            + "; Y: " + String(compassY)
            + "; Z: " + String(compassZ)
-           + "; Heading: " + String(compassHeading) + "]\n";
-
+           + "; Heading: " + String(compassHeading) + "]";
+  message += "\r\n";
   // Gửi qua Bluetooth
   SerialBT.print(message);
 }
 
-void flow2Task(void * parameter) {
+void flowTask(void * parameter) {
   for (;;) {
   // Hàm đo khoảng cách từ cảm biến siêu âm
     leftDistance = getDistance(LEFT_TRIG, LEFT_ECHO);
@@ -273,6 +288,27 @@ void flow2Task(void * parameter) {
     vTaskDelay(100 / portTICK_PERIOD_MS); // Kiểm tra mỗi 100ms
   };
 }
+
+// void gy87Task(void *parameter) {
+//   while (true) {
+//     // Đọc dữ liệu từ MPU6050
+//     mpu.getMotion6(&accelX, &accelY, &accelZ, &gyroX, &gyroY, &gyroZ);
+
+//     // Đọc nhiệt độ & áp suất từ BMP180
+//     temp = bmp.readTemperature();
+//     pressure = bmp.readPressure();
+
+//     // Đọc dữ liệu la bàn HMC5883L
+//     compass.read();
+//     compassX = compass.getX();
+//     compassY = compass.getY();
+//     compassZ = compass.getZ();
+//     compassHeading = compass.getAzimuth();
+
+//     // Delay 100ms
+//     vTaskDelay(100 / portTICK_PERIOD_MS);
+//   }
+// }
 
 long getDistance(int TRIG_PIN, int ECHO_PIN) {
   digitalWrite(TRIG_PIN, LOW);
