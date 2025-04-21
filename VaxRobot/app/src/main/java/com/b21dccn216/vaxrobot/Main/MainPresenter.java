@@ -39,7 +39,6 @@ public class MainPresenter implements MainContract.Presenter {
         init();
         handler = new Handler(Looper.getMainLooper());
         loopHandler();
-
     }
 
     @Override
@@ -152,8 +151,5 @@ public class MainPresenter implements MainContract.Presenter {
         model.disconnect();
         view.showDisconnected();
     }
-
-
-
 
 }

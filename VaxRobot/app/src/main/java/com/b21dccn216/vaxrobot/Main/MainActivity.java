@@ -173,51 +173,56 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             }
         });
 
-//        binding.left.setOnTouchListener(new View.OnTouchListener() {
-//            @Override
-//            public boolean onTouch(View view, MotionEvent motionEvent) {
-//                switch (motionEvent.getAction()) {
-//                    case MotionEvent.ACTION_DOWN:
-//                        // Finger touched the button
-//                        presenter.setCommandSend("L");
-//                        return true;
-//                    case MotionEvent.ACTION_UP:
-//                        // Finger lifted off the button
-//                        presenter.setCommandSend("S");
-//                        return true;
-//                }
-//                return false;
-//            }
+        binding.left.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                switch (motionEvent.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        // Finger touched the button
+                        presenter.setCommandSend("L");
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                        // Finger lifted off the button
+                        presenter.setCommandSend("S");
+                        return true;
+                }
+                return false;
+            }
+        });
+
+        binding.right.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                switch (motionEvent.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        // Finger touched the button
+                        presenter.setCommandSend("R");
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                        // Finger lifted off the button
+                        presenter.setCommandSend("S");
+                        return true;
+                }
+                return false;
+            }
+        });
+
+//        binding.right.setOnClickListener(v -> {
+//            setRobotAngle(45);
 //        });
-
-        binding.right.setOnClickListener(v -> {
-            setRobotAngle(45);
-        });
-        binding.left.setOnClickListener(v -> {
-            setRobotAngle(-45);
-        });
-
-//        binding.right.setOnTouchListener(new View.OnTouchListener() {
-//            @Override
-//            public boolean onTouch(View view, MotionEvent motionEvent) {
-//                switch (motionEvent.getAction()) {
-//                    case MotionEvent.ACTION_DOWN:
-//                        // Finger touched the button
-//                        presenter.setCommandSend("R");
-//                        return true;
-//                    case MotionEvent.ACTION_UP:
-//                        // Finger lifted off the button
-//                        presenter.setCommandSend("S");
-//                        return true;
-//                }
-//                return false;
-//            }
+//        binding.left.setOnClickListener(v -> {
+//            setRobotAngle(-45);
 //        });
 
 
         binding.delete.setOnClickListener(v -> {
             presenter.sendCommand("D");
         });
+
+
+
+
+
     }
 
     // Optional: handle result from enable request
