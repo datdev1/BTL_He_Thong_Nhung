@@ -10,7 +10,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 
 import com.b21dccn216.vaxrobot.Model.BluetoothModel;
@@ -18,10 +17,14 @@ import com.b21dccn216.vaxrobot.Model.BluetoothModel;
 import java.util.Set;
 
 public class MainPresenter implements MainContract.Presenter {
+
     private MainActivity view;
     private BluetoothModel model;
 
     private Handler handler;
+
+
+    private boolean isShowSeekBaGroup = true;
 
     private String commandSend = "S";
     /*  commandSend value meaning:
@@ -151,5 +154,65 @@ public class MainPresenter implements MainContract.Presenter {
         model.disconnect();
         view.showDisconnected();
     }
+
+    void parseEspMessage(String message) {
+        message = message.trim().replace("\r", "");
+        String[] lines = message.split("\n");
+
+        for (String line : lines) {
+            if (line.startsWith("Speed:")) {
+                String[] parts = line.split("; ");
+                float speed = Float.parseFloat(parts[0].split(": ")[1]);
+                float travelDis = Float.parseFloat(parts[1].split(": ")[1]);
+
+                // Save or use values
+            } else if (line.startsWith("SpeedMotor:")) {
+                String[] parts = line.split("; ");
+                int speedMotor = Integer.parseInt(parts[0].split(": ")[1]);
+                int deltaSpeed = Integer.parseInt(parts[1].split(": ")[1]);
+                float vong = Float.parseFloat(parts[2].split(": ")[1]);
+
+                // Save or use values
+            } else if (line.startsWith("Ultrasonic:")) {
+                line = line.replaceAll("[^0-9;: ]", ""); // Clean brackets
+                String[] parts = line.split("; ");
+                int left = Integer.parseInt(parts[0].split(": ")[1]);
+                int right = Integer.parseInt(parts[1].split(": ")[1]);
+                int front = Integer.parseInt(parts[2].split(": ")[1]);
+
+                // Save or use values
+            } else if (line.startsWith("Accel:")) {
+                line = line.replaceAll("[^0-9.-;: ]", ""); // Clean brackets
+                String[] parts = line.split("; ");
+                float accelX = Float.parseFloat(parts[0].split(": ")[1]);
+                float accelY = Float.parseFloat(parts[1].split(": ")[1]);
+                float accelZ = Float.parseFloat(parts[2].split(": ")[1]);
+
+                // Save or use values
+            } else if (line.startsWith("Gyro:")) {
+                line = line.replaceAll("[^0-9.-;: ]", "");
+                String[] parts = line.split("; ");
+                float gyroX = Float.parseFloat(parts[0].split(": ")[1]);
+                float gyroY = Float.parseFloat(parts[1].split(": ")[1]);
+                float gyroZ = Float.parseFloat(parts[2].split(": ")[1]);
+
+                // Save or use values
+            } else if (line.startsWith("Compass:")) {
+                line = line.replaceAll("[^0-9.-;: ]", "");
+                String[] parts = line.split("; ");
+                float compassX = Float.parseFloat(parts[0].split(": ")[1]);
+                float compassY = Float.parseFloat(parts[1].split(": ")[1]);
+                float compassZ = Float.parseFloat(parts[2].split(": ")[1]);
+                float heading = Float.parseFloat(parts[3].split(": ")[1]);
+
+                // Save or use values
+            }
+        }
+    }
+
+    public void setIsShowSeekBarGroup(boolean isShow){
+        view.setVisibleSeekBarGroup(isShow);
+    }
+
 
 }

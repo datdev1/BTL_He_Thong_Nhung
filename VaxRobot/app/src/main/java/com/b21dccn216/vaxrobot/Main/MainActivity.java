@@ -285,7 +285,9 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             }
         });
 
-
+        binding.status.setOnClickListener(v -> {
+            presenter.disconnect();
+        });
 
 
 
@@ -373,5 +375,10 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
 
     private void setOnNotTouchBackground(ImageView img){
         img.setBackgroundColor(getResources().getColor(R.color.transparentColor));
+    }
+
+
+    public void setVisibleSeekBarGroup(boolean isShow){
+        binding.seekbarGroup.setVisibility(isShow ? View.VISIBLE : View.GONE);
     }
 }
