@@ -10,18 +10,19 @@ BluetoothSerial SerialBT;
 Adafruit_BMP085 bmp;
 MPU6050 mpu;
 QMC5883LCompass compass;
-// Cảm biến gia tốc
-int16_t accelX = 0, accelY = 0, accelZ = 0;
-// Con quay hồi chuyển
-int16_t gyroX = 0, gyroY = 0, gyroZ = 0;
-// La bàn
-int compassX = 0, compassY = 0, compassZ = 0, compassHeading = 0;
-// Cảm biến môi trường
-float temp = 0.0;
-int32_t pressure = 0;
-// SDA Đỏ - 21
-// SCL Nâu - 22
-
+  // Cảm biến gia tốc
+  int16_t accelX = 0, accelY = 0, accelZ = 0;
+  // Con quay hồi chuyển
+  int16_t gyroX = 0, gyroY = 0, gyroZ = 0;
+  // La bàn
+  int compassX = 0, compassY = 0, compassZ = 0, compassHeading = 0;
+  // Cảm biến môi trường
+  float temp = 0.0;
+  int32_t pressure = 0;
+  // SDA Đỏ - 21
+  // SCL Nâu - 22
+  int xMinCalibra = 99999, xMaxCalibra = -99999, yMinCalibra = 99999, yMaxCalibra = -99999, zMinCalibra = 99999, zMaxCalibra = -99999;
+  bool isCalibration = false;
 // Travel_distance
 float travel_distance = 0;
 unsigned long dem2 = 0;
@@ -96,6 +97,7 @@ void setup()
 
     // QMC5883L (magnetometer)
     compass.init();
+    compass.setCalibration(-3620, -580, -1958, 926, -2641, 395);
 
     Serial.println("GY-87 Initialized with Adafruit Libraries");
 
@@ -229,6 +231,22 @@ void loop()
       analogWrite(enA, speed);
       analogWrite(enB, speed + delta_speed);
     }
+    else if (dieu_khien == "calculatingCalibration")
+    {
+      isCalibration = true;
+      xMinCalibra = 99999; 
+      xMaxCalibra = -99999; 
+      yMinCalibra = 99999; 
+      yMaxCalibra = -99999; 
+      zMinCalibra = 99999; 
+      zMaxCalibra = -99999;
+      compass.clearCalibration();
+    }
+    else if (dieu_khien == "resetCalibration")
+    {
+      resetCalibration();
+    }
+    calculatingCalibration();
     sendAllInformation();
   }
 }
@@ -238,28 +256,43 @@ void sendAllInformation()
   String message = "";
 
   // Nối từng phần tùy nhu cầu — có thể bật/tắt bằng cách comment
-  message += "Speed: " + String(tocdo, 2) + "; ";
-  message += "TravelDis: " + String(travel_distance, 2) + "\n";
-  message += "SpeedMotor: " + String(speed) + "; ";
-  message += "Delta_speed: " + String(delta_speed) + "; ";
-  message += "Vong: " + String((float)dem2 / 20.0, 2) + "\n";
-  // Dữ liệu cảm biến siêu âm
-  message += "Ultrasonic: [Left: " + String(leftDistance) + "; Right: " + String(rightDistance) + "; Front: " + String(frontDistance) + "]\n";
+  if(!isCalibration )
+  {
+    message += "Speed: " + String(tocdo, 2) + "; ";
+    message += "TravelDis: " + String(travel_distance, 2) + "\n";
+    message += "SpeedMotor: " + String(speed) + "; ";
+    message += "Delta_speed: " + String(delta_speed) + "; ";
+    message += "Vong: " + String((float)dem2 / 20.0, 2) + "\n";
+    // Dữ liệu cảm biến siêu âm
+    message += "Sonic: [L: " + String(leftDistance) + "; R: " + String(rightDistance) + "; F: " + String(frontDistance) + "]\n";
 
-  // Dữ liệu gia tốc
-  message += "Accel: [X: " + String(accelX) + "; Y: " + String(accelY) + "; Z: " + String(accelZ) + "]\n";
+    // Dữ liệu gia tốc
+    message += "Accel: [X: " + String(accelX) + "; Y: " + String(accelY) + "; Z: " + String(accelZ) + "]\n";
 
-  // Dữ liệu con quay hồi chuyển
-  message += "Gyro: [X: " + String(gyroX) + "; Y: " + String(gyroY) + "; Z: " + String(gyroZ) + "]\n";
+    // Dữ liệu con quay hồi chuyển
+    message += "Gyro: [X: " + String(gyroX) + "; Y: " + String(gyroY) + "; Z: " + String(gyroZ) + "]\n";
+    
+    message += "Temp: " + String(temp) + "'C; Pres: " + String(pressure) + "Pa\n";
+  }
+  
 
   // Dữ liệu la bàn
   message += "Compass: [X: " + String(compassX)
            + "; Y: " + String(compassY)
            + "; Z: " + String(compassZ)
            + "; Heading: " + String(compassHeading) + "]";
+
+  if (isCalibration)
+  {
+    message += "\nCalculating Calibration:\n";
+    message += "X: [" + String(xMinCalibra) + "; " + String(xMaxCalibra) + "]\n";
+    message += "Y: [" + String(yMinCalibra) + "; " + String(yMaxCalibra) + "]\n";
+    message += "Z: [" + String(zMinCalibra) + "; " + String(zMaxCalibra) + "]";
+  }
   message += "\r\n";
   // Gửi qua Bluetooth
   SerialBT.print(message);
+  SerialBT.flush();
 }
 
 void flowTask(void * parameter) {
@@ -330,4 +363,33 @@ void dieuKhienDongCo(bool in1_val, bool in2_val, bool in3_val, bool in4_val)
   digitalWrite(in2, in2_val);
   digitalWrite(in3, in3_val);
   digitalWrite(in4, in4_val);
+}
+
+void calculatingCalibration()
+{
+  if(isCalibration)
+  {
+    compass.read();
+  
+    compassX = compass.getX();
+    compassY = compass.getY();
+    compassZ = compass.getZ();
+    compassHeading = compass.getAzimuth();
+
+    if (xMinCalibra > compassX) xMinCalibra = compassX;
+    if (yMinCalibra > compassY) yMinCalibra = compassY;
+    if (zMinCalibra > compassZ) zMinCalibra = compassZ;
+    
+    if (xMaxCalibra < compassX) xMaxCalibra = compassX;
+    if (yMaxCalibra < compassY) yMaxCalibra = compassY;
+    if (zMaxCalibra < compassZ) zMaxCalibra = compassZ;
+  };
+
+}
+
+void resetCalibration()
+{
+  
+  compass.setCalibration(xMinCalibra, xMaxCalibra, yMinCalibra, yMaxCalibra, zMinCalibra, zMaxCalibra);
+  isCalibration = false;
 }
