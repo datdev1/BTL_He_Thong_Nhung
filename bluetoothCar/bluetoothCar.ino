@@ -85,16 +85,8 @@ void loop() {
         trai();
         SerialBT.println(distance);
         break;
-      case 'l':
-        trai_1();
-        SerialBT.println(distance);
-        break;
       case 'R':
         phai();
-        SerialBT.println(distance);
-        break;
-      case 'r':
-        phai_1();
         SerialBT.println(distance);
         break;
       case 'I':
@@ -162,6 +154,4 @@ void tien_trai() { dieuKhienDongCo(LOW, LOW, HIGH, LOW);}
 void tien_phai() { dieuKhienDongCo(HIGH, LOW, LOW, LOW); }
 void lui_phai() { dieuKhienDongCo(LOW, HIGH, LOW, LOW);}
 void lui_trai() { dieuKhienDongCo(LOW, LOW, LOW, HIGH);}
-void phai_1() { dieuKhienDongCo(HIGH, LOW, LOW, HIGH); delay(500); tien();}
-void trai_1() { dieuKhienDongCo(LOW, HIGH, HIGH, LOW); delay(500); tien();}
 
