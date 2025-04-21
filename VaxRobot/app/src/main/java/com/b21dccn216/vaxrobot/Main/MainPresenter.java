@@ -77,16 +77,16 @@ public class MainPresenter implements MainContract.Presenter {
                 switch (commandSend){
                     case "F":
 //                        TODO: Thay đổi distance
-                        view.updateRobotPosition("UP", 100);
+                        view.updateRobotPosition("UP", 10);
                         break;
                     case "B":
                         view.updateRobotPosition("DOWN", 10);
                         break;
                     case "L":
-//                        view.setRobotAngle(-15);
+                        view.setRobotAngle(-45);
                         break;
                     case "R":
-//                        view.setRobotAngle(15);
+                        view.setRobotAngle(45);
                         break;
                     default:
                         break;

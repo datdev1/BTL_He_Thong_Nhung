@@ -10,6 +10,10 @@ import android.os.Bundle;
 import android.util.Pair;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowManager;
+import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -19,6 +23,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.b21dccn216.vaxrobot.DevicePicking.PickDeviceActivity;
 import com.b21dccn216.vaxrobot.R;
@@ -48,6 +53,13 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         // Inflate using Data Binding
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().setDecorFitsSystemWindows(false);
+            getWindow().getInsetsController().hide(WindowInsets.Type.statusBars());
+        } else {
+            getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        }
         // Khởi tạo presenter
         presenter = new MainPresenter(this, this);
 
@@ -147,10 +159,12 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                     case MotionEvent.ACTION_DOWN:
                         // Finger touched the button
                         presenter.setCommandSend("F");
+                        setOnTouchBackground(binding.up);
                         return true;
                     case MotionEvent.ACTION_UP:
                         // Finger lifted off the button
                         presenter.setCommandSend("S");
+                        setOnNotTouchBackground(binding.up);
                         return true;
                 }
                 return false;
@@ -163,10 +177,12 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                     case MotionEvent.ACTION_DOWN:
                         // Finger touched the button
                         presenter.setCommandSend("B");
+                        setOnTouchBackground(binding.down);
                         return true;
                     case MotionEvent.ACTION_UP:
                         // Finger lifted off the button
                         presenter.setCommandSend("S");
+                        setOnNotTouchBackground(binding.down);
                         return true;
                 }
                 return false;
@@ -180,10 +196,12 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                     case MotionEvent.ACTION_DOWN:
                         // Finger touched the button
                         presenter.setCommandSend("L");
+                        setOnTouchBackground(binding.left);
                         return true;
                     case MotionEvent.ACTION_UP:
                         // Finger lifted off the button
                         presenter.setCommandSend("S");
+                        setOnNotTouchBackground(binding.left);
                         return true;
                 }
                 return false;
@@ -197,10 +215,12 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                     case MotionEvent.ACTION_DOWN:
                         // Finger touched the button
                         presenter.setCommandSend("R");
+                        setOnTouchBackground(binding.right);
                         return true;
                     case MotionEvent.ACTION_UP:
                         // Finger lifted off the button
                         presenter.setCommandSend("S");
+                        setOnNotTouchBackground(binding.right);
                         return true;
                 }
                 return false;
@@ -217,6 +237,52 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
 
         binding.delete.setOnClickListener(v -> {
             presenter.sendCommand("D");
+        });
+
+
+
+        binding.seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+
+
+                String res = "Speed " + String.valueOf(i);
+                presenter.sendCommand(res);
+
+                binding.seekbarValue.setText(i + "");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        binding.seekbarDelta.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+
+
+                String res = "Delta_speed " + String.valueOf(i-50);
+                presenter.sendCommand(res);
+
+                binding.seekbarDeltaValue.setText("" +  String.valueOf(i-50));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
         });
 
 
@@ -245,24 +311,30 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     @Override
     public void showConnectionSuccess(String device) {
         binding.status.setImageResource(R.drawable.baseline_bluetooth_connected_24);
+        binding.status.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.greenColor));
+
         Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void showConnectionFailed() {
         binding.status.setImageResource(R.drawable.baseline_do_not_disturb_24);
+        binding.status.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.greenColor));
+
         Toast.makeText(this, "Connection Failed", Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void showDisconnected(){
         binding.status.setImageResource(R.drawable.baseline_do_not_disturb_24);
+        binding.status.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.greenColor));
+
         Toast.makeText(this, "Disconnected", Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void showMessage(String message){
-        binding.messages.setText(message);
+        binding.messages.setText("Message: \n" + message);
 
     }
 
@@ -295,4 +367,11 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         binding.mapView.setRobotAngle(binding.mapView.getRobotAngle() + deltaAngle);
     }
 
+    private void setOnTouchBackground(ImageView img){
+        img.setBackgroundColor(getResources().getColor(R.color.lightBeigeColor));
+    }
+
+    private void setOnNotTouchBackground(ImageView img){
+        img.setBackgroundColor(getResources().getColor(R.color.transparentColor));
+    }
 }
