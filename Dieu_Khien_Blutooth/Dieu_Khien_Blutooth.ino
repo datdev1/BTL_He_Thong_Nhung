@@ -1,7 +1,8 @@
 #include "BluetoothSerial.h"
 #include <Wire.h>
 #include <Adafruit_BMP085.h>
-#include <MPU6050.h>
+// #include <MPU6050.h>
+#include "MPU6050_6Axis_MotionApps20.h"
 #include <QMC5883LCompass.h>
 
 BluetoothSerial SerialBT;
@@ -23,7 +24,20 @@ QMC5883LCompass compass;
   // SCL Nâu - 22
   int xMinCalibra = 99999, xMaxCalibra = -99999, yMinCalibra = 99999, yMaxCalibra = -99999, zMinCalibra = 99999, zMaxCalibra = -99999;
   bool isCalibration = false;
+
+  /*---MPU6050 Control/Status Variables---*/
+  bool DMPReady = false;  // Set true if DMP init was successful
+  uint8_t devStatus;      // Return status after each device operation (0 = success, !0 = error)
+  uint8_t FIFOBuffer[64]; // FIFO storage buffer
+
+  /*---Orientation/Motion Variables---*/ 
+  Quaternion q;           // [w, x, y, z]         Quaternion container
+  VectorFloat gravity;    // [x, y, z]            Gravity vector
+  float ypr[3];           // [yaw, pitch, roll]   Yaw/Pitch/Roll container and gravity vector
+
+
 // Travel_distance
+float alphaEn = 1;
 float travel_distance = 0;
 unsigned long dem2 = 0;
 float duong_kinh_banh_xe = 6.6;
@@ -77,29 +91,54 @@ void setup()
   Serial.println("Bluetooth is ready. Pair with ESP32_BT to start!");
 
   //GY-87
-    Wire.begin(21, 22); // SDA = 21, SCL = 22 (ESP32 default I2C pins)
-    Wire.setClock(100000);
+  Wire.begin(21, 22); // SDA = 21, SCL = 22 (ESP32 default I2C pins)
+  Wire.setClock(400000);
 
-    // BMP180
-    if (!bmp.begin()) {
-      Serial.println("Could not find BMP180 sensor!");
-      while (1);
-    }
+  // BMP180
+  if (!bmp.begin()) {
+    Serial.println("Could not find BMP180 sensor!");
+    while (1);
+  }
 
-    // MPU6050
-    mpu.initialize();
-    if (!mpu.testConnection()) {
-      Serial.println("MPU6050 not connected!");
-      while (1);
-    }
+  // MPU6050
+  mpu.initialize();
+  if (!mpu.testConnection()) {
+    Serial.println("MPU6050 not connected!");
+    while (1);
+  }
 
-    mpu.setI2CBypassEnabled(true);  
+  devStatus = mpu.dmpInitialize();
 
-    // QMC5883L (magnetometer)
-    compass.init();
-    compass.setCalibration(-3620, -580, -1958, 926, -2641, 395);
+  getCalibrationMPU();
+  /* Making sure it worked (returns 0 if so) */ 
+  if (devStatus == 0) {
+    mpu.CalibrateAccel(6);  // Calibration Time: generate offsets and calibrate our MPU6050
+    mpu.CalibrateGyro(6);
+    Serial.println("These are the Active offsets: ");
+    mpu.PrintActiveOffsets();
+    Serial.println(F("Enabling DMP..."));   //Turning ON DMP
+    mpu.setDMPEnabled(true);
 
-    Serial.println("GY-87 Initialized with Adafruit Libraries");
+
+    /* Set the DMP Ready flag so the main loop() function knows it is okay to use it */
+    Serial.println(F("DMP ready! Waiting for first interrupt..."));
+    DMPReady = true;
+  } 
+  else {
+    Serial.print(F("DMP Initialization failed (code ")); //Print the error code
+    Serial.print(devStatus);
+    Serial.println(F(")"));
+    // 1 = initial memory load failed
+    // 2 = DMP configuration updates failed
+  }
+
+  mpu.setI2CBypassEnabled(true);  
+
+  // QMC5883L (magnetometer)
+  compass.init();
+  compass.setCalibration(-3620, -580, -1958, 926, -2641, 395);
+
+  Serial.println("GY-87 Initialized with Adafruit Libraries");
 
   // car
   pinMode(enA, OUTPUT);
@@ -153,7 +192,7 @@ void loop()
 {
   thoigian = millis();
 
-  travel_distance = (((float)dem2 / 20.0) * (duong_kinh_banh_xe * 3.14));
+  travel_distance = (((float)dem2 / 20.0) * (duong_kinh_banh_xe * 3.14)) * alphaEn;
 
   if (thoigian - hientai >= timecho)
   {
@@ -231,6 +270,11 @@ void loop()
       analogWrite(enA, speed);
       analogWrite(enB, speed + delta_speed);
     }
+    else if (dieu_khien.indexOf("alphaEn") != -1)
+    {
+      String set_alpha_encoder = dieu_khien.substring(8, dieu_khien.length());
+      alphaEn = set_alpha_encoder.toFloat();
+    }
     else if (dieu_khien == "calculatingCalibration")
     {
       isCalibration = true;
@@ -272,6 +316,8 @@ void sendAllInformation()
     // Dữ liệu con quay hồi chuyển
     message += "Gyro: [X: " + String(gyroX) + "; Y: " + String(gyroY) + "; Z: " + String(gyroZ) + "]\n";
     
+    message += "YPR: [Y: " + String(ypr[0] * 180/M_PI, 2) + "; P: " + String(ypr[1] * 180/M_PI, 2) + "; R: " + String(ypr[2] * 180/M_PI, 2) + "]\n";
+
     message += "Temp: " + String(temp) + "'C; Pres: " + String(pressure) + "Pa\n";
   }
   
@@ -310,31 +356,11 @@ void flowTask(void * parameter) {
     compassY = compass.getY();
     compassZ = compass.getZ();
     compassHeading = compass.getAzimuth();
-
+    calAngle();
     vTaskDelay(100 / portTICK_PERIOD_MS); // Kiểm tra mỗi 100ms
   };
 }
 
-// void gy87Task(void *parameter) {
-//   while (true) {
-//     // Đọc dữ liệu từ MPU6050
-//     mpu.getMotion6(&accelX, &accelY, &accelZ, &gyroX, &gyroY, &gyroZ);
-
-//     // Đọc nhiệt độ & áp suất từ BMP180
-//     temp = bmp.readTemperature();
-//     pressure = bmp.readPressure();
-
-//     // Đọc dữ liệu la bàn HMC5883L
-//     compass.read();
-//     compassX = compass.getX();
-//     compassY = compass.getY();
-//     compassZ = compass.getZ();
-//     compassHeading = compass.getAzimuth();
-
-//     // Delay 100ms
-//     vTaskDelay(100 / portTICK_PERIOD_MS);
-//   }
-// }
 
 long getDistance(int TRIG_PIN, int ECHO_PIN) {
   digitalWrite(TRIG_PIN, LOW);
@@ -393,3 +419,34 @@ void resetCalibration()
   compass.setCalibration(xMinCalibra, xMaxCalibra, yMinCalibra, yMaxCalibra, zMinCalibra, zMaxCalibra);
   isCalibration = false;
 }
+
+void calAngle()
+{
+  if (!DMPReady) return; // Stop the program if DMP programming fails.
+  /* Read a packet from FIFO */
+  if (mpu.dmpGetCurrentFIFOPacket(FIFOBuffer)) { // Get the Latest packet 
+      // OUTPUT_READABLE_YAWPITCHROLL
+      /* Display Euler angles in degrees */
+      mpu.dmpGetQuaternion(&q, FIFOBuffer);
+      mpu.dmpGetGravity(&gravity, &q);
+      mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+      // Serial.print("ypr\t");
+      // Serial.print(ypr[0] * 180/M_PI);
+      // Serial.print("\t");
+      // Serial.print(ypr[1] * 180/M_PI);
+      // Serial.print("\t");
+      // Serial.println(ypr[2] * 180/M_PI);
+  }
+}
+
+
+void getCalibrationMPU() {
+  /* Supply your gyro offsets here, scaled for min sensitivity */
+  mpu.setXGyroOffset(0);
+  mpu.setYGyroOffset(0);
+  mpu.setZGyroOffset(0);
+  mpu.setXAccelOffset(0);
+  mpu.setYAccelOffset(0);
+  mpu.setZAccelOffset(0);
+}
+
