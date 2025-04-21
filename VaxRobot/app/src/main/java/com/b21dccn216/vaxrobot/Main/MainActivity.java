@@ -32,14 +32,19 @@ import com.b21dccn216.vaxrobot.databinding.ActivityMainBinding;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
+import javax.inject.Inject;
 
+import dagger.hilt.android.AndroidEntryPoint;
+import dagger.hilt.android.HiltAndroidApp;
+
+@AndroidEntryPoint
 public class MainActivity extends AppCompatActivity implements MainContract.View{
     private ActivityMainBinding binding;
     private ActivityResultLauncher<Intent> devicePickerLauncher;
     private static final int REQUEST_BLUETOOTH_PERMISSIONS = 1;
 
-
-    private MainPresenter presenter;
+    @Inject
+    public MainPresenter presenter;
 
     private ArrayList<Pair<String, String>> deviceList = new ArrayList<>();
 
@@ -53,6 +58,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         // Inflate using Data Binding
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        // Hide status bar
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             getWindow().setDecorFitsSystemWindows(false);
             getWindow().getInsetsController().hide(WindowInsets.Type.statusBars());
@@ -61,7 +67,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                     WindowManager.LayoutParams.FLAG_FULLSCREEN);
         }
         // Khởi tạo presenter
-        presenter = new MainPresenter(this, this);
+        presenter.setView(this);
 
         // Request permissions
         requestBluetoothPermissions();

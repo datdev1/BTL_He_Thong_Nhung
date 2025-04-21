@@ -16,6 +16,10 @@ import com.b21dccn216.vaxrobot.Model.BluetoothModel;
 
 import java.util.Set;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+@Singleton
 public class MainPresenter implements MainContract.Presenter {
 
     private MainActivity view;
@@ -36,8 +40,11 @@ public class MainPresenter implements MainContract.Presenter {
                                     D: Delete mesage
          */
 
+    @Inject
+    public MainPresenter() {
+    }
 
-    public MainPresenter(MainActivity view, Context context) {
+    public void setView(MainActivity view){
         this.view = view;
         init();
         handler = new Handler(Looper.getMainLooper());
