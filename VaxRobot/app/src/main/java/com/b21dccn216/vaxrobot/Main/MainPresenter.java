@@ -1,5 +1,7 @@
 package com.b21dccn216.vaxrobot.Main;
 
+import static com.b21dccn216.vaxrobot.View.MapView.squareSizeCm;
+
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -19,6 +21,7 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+
 @Singleton
 public class MainPresenter implements MainContract.Presenter {
 
@@ -27,6 +30,14 @@ public class MainPresenter implements MainContract.Presenter {
 
     private Handler handler;
 
+    private float travelDistance = 0;
+    private float traveledDistance = 0;
+
+
+    private int compassAngle = 0;
+    private float yAngle = 0;
+
+    private BluetoothAdapter bluetoothAdapter;
 
     private boolean isShowSeekBaGroup = true;
     private boolean isSettingCompass = false;
@@ -54,28 +65,34 @@ public class MainPresenter implements MainContract.Presenter {
 
     @Override
     public void init(){
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         Log.e("BluetoothVax", "Device does not support Bluetooth");
         if (bluetoothAdapter == null) {
             Log.e("Bluetooth", "Device does not support Bluetooth");
             view.showAlertDialog("Error", "Device does not support Bluetooth");
         } else {
-            if (!bluetoothAdapter.isEnabled()) {
-                Intent requestBT = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                if (ActivityCompat.checkSelfPermission((Context) view, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    return;
-                }
-                view.startActivityForResult(requestBT, 1233);
-            }
+            // Request to turn bluetooth on
+            requestToTurnBluetoothOn();
         }
+        // Init model
         this.model = new BluetoothModel(view, bluetoothAdapter);
+    }
+
+    private void requestToTurnBluetoothOn(){
+        if (!bluetoothAdapter.isEnabled()) {
+            Intent requestBT = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            if (ActivityCompat.checkSelfPermission((Context) view, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return;
+            }
+            view.startActivityForResult(requestBT, 1233);
+        }
     }
 
     private void loopHandler(){
@@ -84,24 +101,7 @@ public class MainPresenter implements MainContract.Presenter {
             public void run() {
                 sendCommand(commandSend);
                 loopHandler();
-
-                switch (commandSend){
-                    case "F":
-//                        TODO: Thay đổi distance
-                        view.updateRobotPosition("UP", 10);
-                        break;
-                    case "B":
-                        view.updateRobotPosition("DOWN", 10);
-                        break;
-                    case "L":
-                        view.setRobotAngle(-45);
-                        break;
-                    case "R":
-                        view.setRobotAngle(45);
-                        break;
-                    default:
-                        break;
-                }
+                view.updateRobotAction(commandSend);
             }
         }, 5);
     }
@@ -123,15 +123,27 @@ public class MainPresenter implements MainContract.Presenter {
                 new BluetoothModel.MessageCallBack() {
                     @Override
                     public void onMessageReceived(String message) {
-
                         view.showMessage(message);
-//                        if(message != null){
-//                            String[] messages = message.split(":");
-//                            if(messages[0].equals("Speed")){
-//                                view.showMessage(message);
-//                            }
-//                        }
-//                        Log.e("DATDEV1", message);
+                        parseBluetoothMessage(message);
+                        int mapped = (int) yAngle;
+                        if(mapped < 0) mapped = 360 + mapped;
+//                        Log.d("MapView", "CompassAngle: " + compassAngle);
+                        view.setRobotAngle(mapped);
+
+                        float delta =  (travelDistance - traveledDistance);
+                        if(delta / squareSizeCm > 1){
+                            Log.d("MapView", "1delta: " + delta);
+                            Log.d("MapView", "2travelDistance: " + travelDistance);
+
+                            int intDelta = (int) (delta - delta % squareSizeCm);
+
+                            view.updateRobotPosition(intDelta);
+                            traveledDistance += (float)(intDelta);
+                            Log.d("MapView", "3intDelta: " + intDelta);
+                            Log.d("MapView", "4traveledDistance: " + traveledDistance);
+                        }
+
+                        // TODO:: UPDATE MAP
                     }
                     @Override
                     public void onError(String message) {
@@ -163,60 +175,96 @@ public class MainPresenter implements MainContract.Presenter {
         view.showDisconnected();
     }
 
-    void parseEspMessage(String message) {
-        message = message.trim().replace("\r", "");
-        String[] lines = message.split("\n");
+    // TODO:: get Heading.
+    void parseBluetoothMessage(String fullMessage) {
 
-        for (String line : lines) {
-            if (line.startsWith("Speed:")) {
-                String[] parts = line.split("; ");
-                float speed = Float.parseFloat(parts[0].split(": ")[1]);
-                float travelDis = Float.parseFloat(parts[1].split(": ")[1]);
+        String[] lines = fullMessage.strip().split("\\R"); // split by line
+//        Log.e("MapView", "lines " + lines.length + " message " + fullMessage);
 
-                // Save or use values
-            } else if (line.startsWith("SpeedMotor:")) {
-                String[] parts = line.split("; ");
-                int speedMotor = Integer.parseInt(parts[0].split(": ")[1]);
-                int deltaSpeed = Integer.parseInt(parts[1].split(": ")[1]);
-                float vong = Float.parseFloat(parts[2].split(": ")[1]);
-
-                // Save or use values
-            } else if (line.startsWith("Ultrasonic:")) {
-                line = line.replaceAll("[^0-9;: ]", ""); // Clean brackets
-                String[] parts = line.split("; ");
-                int left = Integer.parseInt(parts[0].split(": ")[1]);
-                int right = Integer.parseInt(parts[1].split(": ")[1]);
-                int front = Integer.parseInt(parts[2].split(": ")[1]);
-
-                // Save or use values
-            } else if (line.startsWith("Accel:")) {
-                line = line.replaceAll("[^0-9.-;: ]", ""); // Clean brackets
-                String[] parts = line.split("; ");
-                float accelX = Float.parseFloat(parts[0].split(": ")[1]);
-                float accelY = Float.parseFloat(parts[1].split(": ")[1]);
-                float accelZ = Float.parseFloat(parts[2].split(": ")[1]);
-
-                // Save or use values
-            } else if (line.startsWith("Gyro:")) {
-                line = line.replaceAll("[^0-9.-;: ]", "");
-                String[] parts = line.split("; ");
-                float gyroX = Float.parseFloat(parts[0].split(": ")[1]);
-                float gyroY = Float.parseFloat(parts[1].split(": ")[1]);
-                float gyroZ = Float.parseFloat(parts[2].split(": ")[1]);
-
-                // Save or use values
-            } else if (line.startsWith("Compass:")) {
-                line = line.replaceAll("[^0-9.-;: ]", "");
-                String[] parts = line.split("; ");
-                float compassX = Float.parseFloat(parts[0].split(": ")[1]);
-                float compassY = Float.parseFloat(parts[1].split(": ")[1]);
-                float compassZ = Float.parseFloat(parts[2].split(": ")[1]);
-                float heading = Float.parseFloat(parts[3].split(": ")[1]);
-
-                // Save or use values
-            }
+        // 1. Speed and Travel Distance
+        try{
+            String[] speedParts = lines[0].split("; ");
+            double speed = Double.parseDouble(speedParts[0].split(": ")[1]);
+            travelDistance = (float) Double.parseDouble(speedParts[1].split(": ")[1]);
+//            Log.i("MapView", "Speed = " + speed + ", Travel Distance = " + travelDis);
+        }catch (Exception e){
+            Log.e("MapView", "parseBluetoothMessage: " + e.getStackTrace().toString());
         }
+
+
+        // 2. Motor Speed
+//        try{
+//            String[] motorParts = lines[1].split("; ");
+//            int speedMotor = Integer.parseInt(motorParts[0].split(": ")[1]);
+//            int deltaSpeed = Integer.parseInt(motorParts[1].split(": ")[1]);
+//            double vong = Double.parseDouble(motorParts[2].split(": ")[1]);
+//            Log.i("MapView", "Motor = " + speedMotor + ", Delta = " + deltaSpeed + ", Vong = " + vong);
+//        }catch (Exception e){
+//            Log.e("MapView", "parseBluetoothMessage: " + e.getStackTrace().toString());
+//        }
+
+        // 3. Sonic
+//        String[] sonicParts = lines[2].replaceAll("[^0-9;]", "").split("; ");
+//        int sonicL = Integer.parseInt(sonicParts[0]);
+//        int sonicR = Integer.parseInt(sonicParts[1]);
+//        int sonicF = Integer.parseInt(sonicParts[2]);
+
+        // 4. Accelerometer
+//        String[] accelParts = lines[3].replaceAll("[^X0-9Y:Z\\-; ]", "").split("[; ]+");
+//        int accelX = Integer.parseInt(accelParts[1]);
+//        int accelY = Integer.parseInt(accelParts[3]);
+//        int accelZ = Integer.parseInt(accelParts[5]);
+
+        // 5. Gyroscope
+//        String[] gyroParts = lines[4].replaceAll("[^X0-9Y:Z\\-; ]", "").split("[; ]+");
+//        int gyroX = Integer.parseInt(gyroParts[1]);
+//        int gyroY = Integer.parseInt(gyroParts[3]);
+//        int gyroZ = Integer.parseInt(gyroParts[5]);
+
+        // 6. Yaw-Pitch-Roll
+        try{
+            String[] yprParts = lines[5]
+                    .replace("YPR:", "")
+                    .replace("[", "")
+                    .replace("]", "")
+                    .split(";");
+            yAngle = Float.parseFloat(yprParts[0].replace("Y:", ""));
+            double pitch = Double.parseDouble(yprParts[1].replace("P:", ""));
+            double roll = Double.parseDouble(yprParts[2].replace("R:", ""));
+//            Log.i("MapView", "YPR = Yaw: " + yAngle + ", Pitch: " + pitch + ", Roll: " + roll);
+
+        }catch (Exception e){
+            Log.e("MapView", "parseBluetoothMessage: " + e.getStackTrace().toString() + e.getMessage());
+        }
+
+        // 7. Temp & Pressure
+//        String[] tempParts = lines[6].split("; ");
+//        double temp = Double.parseDouble(tempParts[0].split(": ")[1].replace("'C", ""));
+//        int pressure = Integer.parseInt(tempParts[1].split(": ")[1].replace("Pa", ""));
+
+        // 8. Compass
+        try{
+            String[] compassParts = lines[7].replaceAll("[^0-9\\-; ]", "").split("; ");
+            Log.d("MapView", compassParts[3]);
+//            int compassX = Integer.parseInt(compassParts[0].split(": ")[1]);
+//            int compassY = Integer.parseInt(compassParts[1].split(": ")[1]);
+//            int compassZ = Integer.parseInt(compassParts[2].split(": ")[1]);
+            compassAngle = Integer.parseInt(compassParts[3].trim());
+//            Log.i("MapView", "Compass X/Y/Z = " + compassAngle + "/" + compassAngle + "/" + compassAngle + ", Heading = " + compassAngle);
+
+        }catch (Exception e){
+            Log.e("MapView", "parseBluetoothMessage: " + e.getStackTrace()+ " " + e.getMessage());
+        }
+
+        // Print sample values
+        // Inside your method
+//        Log.i("MapView", "Sonic L/R/F = " + sonicL + "/" + sonicR + "/" + sonicF);
+//        Log.i("MapView", "Accel X/Y/Z = " + accelX + "/" + accelY + "/" + accelZ);
+//        Log.i("MapView", "Gyro X/Y/Z = " + gyroX + "/" + gyroY + "/" + gyroZ);
+//        Log.i("MapView", "Temp = " + temp + "°C, Pressure = " + pressure + " Pa");
     }
+
+
 
     public void setIsShowSeekBarGroup(boolean isShow){
         view.setVisibleSeekBarGroup(isShow);

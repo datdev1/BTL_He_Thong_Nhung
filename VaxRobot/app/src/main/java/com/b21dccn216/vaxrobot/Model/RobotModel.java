@@ -11,6 +11,8 @@ public class RobotModel {
     private int distance;
     private float angle;
 
+    private String action = "F";
+
     private int squareSize;
 
     public RobotModel(int x, int y, int squareSize) {
@@ -68,7 +70,19 @@ public class RobotModel {
     }
 
 
+    public String getAction() {
+        return action;
+    }
 
+    public void setAction(String action) {
+        this.action = action;
+    }
 
+    public int getSquareSize() {
+        return squareSize;
+    }
 
+    public void setSquareSize(int squareSize) {
+        this.squareSize = squareSize;
+    }
 }

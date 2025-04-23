@@ -29,7 +29,7 @@ public class MapView extends View {
     // Map size : mapShapeSize x mapShapeSize
     private final float mapShapeSize = 100000f;
     // Each grid box size is 10 cm in real life
-    private final float squareSizeCm = 10;
+    public static final float squareSizeCm = 10;
     // Size of each grid box in pixel
     private final int squareSize = (int) mapShapeSize/numberGridBox;
 
@@ -290,45 +290,133 @@ public class MapView extends View {
 
 
     // Update robot position
-    public void updateRobotPosition(String action, float distance) {
+    public void updateRobotPosition(float distance) {
+//        // radian value of angle
+//        double radians = Math.toRadians(robotPosition.getAngle());
+//        // change distance to value in x and y axis
+//        float xDistance = (float) (distance * Math.sin(radians));
+//        float yDistance = (float) (distance * Math.cos(radians));
+////        Log.d("MapView", "radians: getAngle = " + robotPosition.getAngle() + ", sin = " + Math.sin(radians) +
+////                "cos = " + Math.cos(radians));
+//
+//        // Change distance to number of square in map
+//        int stepX = (int) (int) (xDistance / squareSizeCm);
+//        int stepY = (int) (int) (yDistance / squareSizeCm);
+////        Log.d("MapView", "Update: stepX = " + stepX + ", stepY = " + stepY);
+//
+//        int y = 0;
+//        int x = 0;
+//        int originX = robotPosition.getX();
+//        int originY = robotPosition.getY();
+//        // TODO:
+////        if(action.equals("UP")){
+////            x = originX +  stepX;
+////            y = originY -   stepY;
+////        }else if(action.equals("DOWN")){
+////            x = originX -  stepX;
+////            y = originY +   stepY;
+////        }
+//
+////        Log.d("MapView", "Update: x = " + x + ", y = " + y);
+//
+////        x, y passed
+////        TODO: MOVE ALL MAP TO CENTER
+//        int clampedX = Math.max(0, Math.min(numberGridBox - 1, x));
+//        int clampedY = Math.max(0, Math.min(numberGridBox - 1,  y));
+//
+//
+//
+//        robotPosition.setX(clampedX);
+//        robotPosition.setY(clampedY);
+//        // center to robot position
+//        float viewWidth = getWidth();
+//        float viewHeight = getHeight();
+//
+//        // Center formula
+//        translateX = (viewWidth / 2f) - (robotPosition.getXAxis() * scaleFactor);
+//        translateY = (viewHeight / 2f) - (robotPosition.getYAxis() * scaleFactor);
+//
+//
+//        // TODO: Update map and set index to 1,2,3
+////        map[robotPosition.getX()][robotPosition.getY()] = 1;
+//        drawLine(originX, originY, clampedX, clampedY);
 
-        double radians = Math.toRadians(robotPosition.getAngle());
-        float xDistance = (float) (distance * Math.sin(radians));
-        float yDistance = (float) (distance * Math.cos(radians));
-        Log.d("MapView", "radians: getAngle = " + robotPosition.getAngle() + ", sin = " + Math.sin(radians) +
-                "cos = " + Math.cos(radians));
-        int y = robotPosition.getY() +   (int) (yDistance / squareSizeCm);
-        int x = robotPosition.getX() +  (int) (xDistance / squareSizeCm);
 
-        if(action.equals("UP")){
-            x = robotPosition.getX() +  (int) (xDistance / squareSizeCm);
-            y = robotPosition.getY() -   (int) (yDistance / squareSizeCm);
-        }else if(action.equals("DOWN")){
-            x = robotPosition.getX() -  (int) (xDistance / squareSizeCm);
-            y = robotPosition.getY() +   (int) (yDistance / squareSizeCm);
-        }
+        // test
+        int[] newPosition = calculateNewPosition(robotPosition.getX(), robotPosition.getY(),robotPosition.getAngle(), distance);
 
+        robotPosition.setX(newPosition[0]);
+        robotPosition.setY(newPosition[1]);
 
-
-        Log.d("MapView", "Update: x = " + x + ", y = " + y);
-
-//        x, y passed
-        int clampedX = Math.max(0, Math.min(numberGridBox - 1, x));
-        int clampedY = Math.max(0, Math.min(numberGridBox - 1,  y));
-
-        robotPosition.setX(clampedX);
-        robotPosition.setY(clampedY);
-        // center to robot position
-        float viewWidth = getWidth();
-        float viewHeight = getHeight();
-
-        // Center formula
-        translateX = (viewWidth / 2f) - (robotPosition.getXAxis() * scaleFactor);
-        translateY = (viewHeight / 2f) - (robotPosition.getYAxis() * scaleFactor);
-
-        // TODO: Update map and set index to 1,2,3
-        map[robotPosition.getX()][robotPosition.getY()] = 1;
+        drawLine(robotPosition.getX(), robotPosition.getY(), newPosition[0], newPosition[1]);
+        centerOnPoint(robotPosition.getXAxis(), robotPosition.getYAxis());
         invalidate();
     }
+
+
+    private int[] calculateNewPosition(int x, int y, double angleDeg, double distanceCm) {
+        // Convert angle to radians
+        double angleRad = Math.toRadians(angleDeg);
+
+        // Calculate delta in cm
+        double dx = distanceCm * Math.sin(angleRad);
+        double dy = distanceCm * Math.cos(angleRad);
+
+        // Convert cm to grid index delta
+        int deltaX = (int) Math.round(dx / 10.0); // 10cm per cell
+        int deltaY = (int) Math.round(dy / 10.0);
+
+        String action = robotPosition.getAction();
+        // Y axis usually increases downward in arrays, so invert dy if needed
+        int newX = 0, newY = 0;
+        if(action.equals("F")){
+            newX = x + deltaX;
+            newY = y - deltaY; // subtract if y=0 is top of map
+            return new int[]{newX, newY};
+        }else if(action.equals("B")){
+            newX = x - deltaX;
+            newY = y + deltaY; // subtract if y=0 is top of map
+            return new int[]{newX, newY};
+        }else{
+            return new int[]{x, y};
+        }
+
+    }
+
+    public void drawLine(int originX, int originY, int robotX, int robotY) {
+        int x0 = originX;
+        int y0 = originY;
+        int x1 = robotX;
+        int y1 = robotY;
+
+        int dx = Math.abs(x1 - x0);
+        int dy = Math.abs(y1 - y0);
+        int sx = x0 < x1 ? 1 : -1;
+        int sy = y0 < y1 ? 1 : -1;
+        int err = dx - dy;
+
+        while (true) {
+            if (x0 >= 0 && y0 >= 0 && x0 < map.length && y0 < map[0].length) {
+                map[x0][y0] = 1;
+            }
+
+            if (x0 == x1 && y0 == y1) break;
+
+            int e2 = 2 * err;
+            if (e2 > -dy) {
+                err -= dy;
+                x0 += sx;
+            }
+            if (e2 < dx) {
+                err += dx;
+                y0 += sy;
+            }
+        }
+    }
+
+    public void setRobotAction(String action){
+        robotPosition.setAction(action);
+    }
+
 }
 

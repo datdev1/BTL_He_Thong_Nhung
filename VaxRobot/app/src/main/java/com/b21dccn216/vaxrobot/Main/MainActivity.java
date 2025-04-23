@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import dagger.hilt.android.AndroidEntryPoint;
-import dagger.hilt.android.HiltAndroidApp;
 
 @AndroidEntryPoint
 public class MainActivity extends AppCompatActivity implements MainContract.View{
@@ -372,14 +371,19 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     }
 
     @Override
-    public void updateRobotPosition(String action, int distance){
-        binding.mapView.updateRobotPosition(action, distance);
+    public void updateRobotPosition( int distance){
+        binding.mapView.updateRobotPosition(distance);
+    }
+
+    public void updateRobotAction(String action){
+        binding.mapView.setRobotAction(action);
     }
 
 
     @Override
     public void setRobotAngle(int deltaAngle){
-        binding.mapView.setRobotAngle(binding.mapView.getRobotAngle() + deltaAngle);
+//        binding.mapView.setRobotAngle(binding.mapView.getRobotAngle() + deltaAngle);
+        binding.mapView.setRobotAngle(deltaAngle);
     }
 
     private void setOnTouchBackground(ImageView img){
