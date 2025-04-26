@@ -15,6 +15,7 @@ import android.util.Log;
 import androidx.core.app.ActivityCompat;
 
 import com.b21dccn216.vaxrobot.Model.BluetoothModel;
+import com.b21dccn216.vaxrobot.Model.RobotModel;
 
 import java.util.Set;
 
@@ -35,7 +36,9 @@ public class MainPresenter implements MainContract.Presenter {
 
 
     private int compassAngle = 0;
-    private float yAngle = 0;
+
+    private RobotModel robotModelClone;
+
 
     private BluetoothAdapter bluetoothAdapter;
 
@@ -56,7 +59,8 @@ public class MainPresenter implements MainContract.Presenter {
     public MainPresenter() {
     }
 
-    public void setView(MainActivity view){
+    public void setView(MainActivity view, RobotModel robotModel){
+        this.robotModelClone = robotModel;
         this.view = view;
         init();
         handler = new Handler(Looper.getMainLooper());
@@ -82,16 +86,9 @@ public class MainPresenter implements MainContract.Presenter {
         if (!bluetoothAdapter.isEnabled()) {
             Intent requestBT = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             if (ActivityCompat.checkSelfPermission((Context) view, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-                return;
+                ActivityCompat.requestPermissions(view, new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 1001);
             }
-            view.startActivityForResult(requestBT, 1233);
+            view.startActivityForResult(requestBT, 1001);
         }
     }
 
@@ -99,9 +96,13 @@ public class MainPresenter implements MainContract.Presenter {
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
+                // Send command to robot continuously 1 time for 5 millisecond
+                // Default send S - Stop
                 sendCommand(commandSend);
-                loopHandler();
+                // TODO: Mergin into set robotModel only
+                robotModelClone.setAction(commandSend);
                 view.updateRobotAction(commandSend);
+                loopHandler();
             }
         }, 5);
     }
@@ -124,11 +125,16 @@ public class MainPresenter implements MainContract.Presenter {
                     @Override
                     public void onMessageReceived(String message) {
                         view.showMessage(message);
+                        // parse message
                         parseBluetoothMessage(message);
-                        int mapped = (int) yAngle;
-                        if(mapped < 0) mapped = 360 + mapped;
-//                        Log.d("MapView", "CompassAngle: " + compassAngle);
-                        view.setRobotAngle(mapped);
+                        // Map yAngle into 0-360
+//                        int mapped = (int) yAngle;
+//                        if(mapped < 0) mapped = 360 + mapped;
+
+                        // TODO:: MERGE INTO setRobotModel only
+                        view.setRawRobotModel(robotModelClone);
+//                        view.setRobotAngle((int) robotModelClone.getAngle());
+//                        view.setRobotSonics(son)
 
                         float delta =  (travelDistance - traveledDistance);
                         if(delta / squareSizeCm > 1){
@@ -136,14 +142,14 @@ public class MainPresenter implements MainContract.Presenter {
                             Log.d("MapView", "2travelDistance: " + travelDistance);
 
                             int intDelta = (int) (delta - delta % squareSizeCm);
-
-                            view.updateRobotPosition(intDelta);
+                            // TODO:: MERGE INTO setRobotModel only
+                            robotModelClone.setDistance(intDelta);
+                            view.setRawRobotModel(robotModelClone);
+//                            view.updateRobotPosition(intDelta);
                             traveledDistance += (float)(intDelta);
                             Log.d("MapView", "3intDelta: " + intDelta);
                             Log.d("MapView", "4traveledDistance: " + traveledDistance);
                         }
-
-                        // TODO:: UPDATE MAP
                     }
                     @Override
                     public void onError(String message) {
@@ -188,7 +194,7 @@ public class MainPresenter implements MainContract.Presenter {
             travelDistance = (float) Double.parseDouble(speedParts[1].split(": ")[1]);
 //            Log.i("MapView", "Speed = " + speed + ", Travel Distance = " + travelDis);
         }catch (Exception e){
-            Log.e("MapView", "parseBluetoothMessage: " + e.getStackTrace().toString());
+            Log.e("MapView", "parseBluetoothMessage: " + e);
         }
 
 
@@ -200,14 +206,17 @@ public class MainPresenter implements MainContract.Presenter {
 //            double vong = Double.parseDouble(motorParts[2].split(": ")[1]);
 //            Log.i("MapView", "Motor = " + speedMotor + ", Delta = " + deltaSpeed + ", Vong = " + vong);
 //        }catch (Exception e){
-//            Log.e("MapView", "parseBluetoothMessage: " + e.getStackTrace().toString());
+//            Log.e("MapView", "parseBluetoothMessage: " + e);
 //        }
 
         // 3. Sonic
-//        String[] sonicParts = lines[2].replaceAll("[^0-9;]", "").split("; ");
-//        int sonicL = Integer.parseInt(sonicParts[0]);
-//        int sonicR = Integer.parseInt(sonicParts[1]);
-//        int sonicF = Integer.parseInt(sonicParts[2]);
+        String[] sonicParts = lines[2].replaceAll("[^0-9;]", "").split(";");
+        int sonicL = Integer.parseInt(sonicParts[0]);
+        int sonicR = Integer.parseInt(sonicParts[1]);
+        int sonicF = Integer.parseInt(sonicParts[2]);
+        int[] sonicValues = new int[]{sonicL, sonicR, sonicF};
+        Log.i("MapView", "Sonic L/R/F = " + sonicL + "/" + sonicR + "/" + sonicF);
+
 
         // 4. Accelerometer
 //        String[] accelParts = lines[3].replaceAll("[^X0-9Y:Z\\-; ]", "").split("[; ]+");
@@ -228,13 +237,15 @@ public class MainPresenter implements MainContract.Presenter {
                     .replace("[", "")
                     .replace("]", "")
                     .split(";");
-            yAngle = Float.parseFloat(yprParts[0].replace("Y:", ""));
-            double pitch = Double.parseDouble(yprParts[1].replace("P:", ""));
-            double roll = Double.parseDouble(yprParts[2].replace("R:", ""));
+            float tempYAngle = Float.parseFloat(yprParts[0].replace("Y:", ""));
+            //double pitch = Double.parseDouble(yprParts[1].replace("P:", ""));
+            //double roll = Double.parseDouble(yprParts[2].replace("R:", ""));
+            // Map yAngle into 0-360 and set to robotModelClone
+            robotModelClone.setAngle(mapYAngleInto360(tempYAngle));
 //            Log.i("MapView", "YPR = Yaw: " + yAngle + ", Pitch: " + pitch + ", Roll: " + roll);
 
         }catch (Exception e){
-            Log.e("MapView", "parseBluetoothMessage: " + e.getStackTrace().toString() + e.getMessage());
+            Log.e("MapView", "parseBluetoothMessage: " + e + e.getMessage());
         }
 
         // 7. Temp & Pressure
@@ -256,8 +267,6 @@ public class MainPresenter implements MainContract.Presenter {
             Log.e("MapView", "parseBluetoothMessage: " + e.getStackTrace()+ " " + e.getMessage());
         }
 
-        // Print sample values
-        // Inside your method
 //        Log.i("MapView", "Sonic L/R/F = " + sonicL + "/" + sonicR + "/" + sonicF);
 //        Log.i("MapView", "Accel X/Y/Z = " + accelX + "/" + accelY + "/" + accelZ);
 //        Log.i("MapView", "Gyro X/Y/Z = " + gyroX + "/" + gyroY + "/" + gyroZ);
@@ -289,4 +298,15 @@ public class MainPresenter implements MainContract.Presenter {
     public boolean isShowSeekBaGroup() {
         return isShowSeekBaGroup;
     }
+
+    /*
+     * yAngle input is  |0-->180 -->180  -->360
+     * Map yAngle into  |0-->180 -->-180 -->0
+     */
+    private int mapYAngleInto360(float yAngle){
+        int mapped = (int) yAngle;
+        if(mapped < 0) mapped = 360 + mapped;
+        return mapped;
+    }
+
 }

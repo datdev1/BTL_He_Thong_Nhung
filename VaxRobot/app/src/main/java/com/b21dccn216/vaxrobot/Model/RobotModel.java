@@ -11,6 +11,8 @@ public class RobotModel {
     private int distance;
     private float angle;
 
+    private SonicValue sonicValue;
+
     private String action = "F";
 
     private int squareSize;
@@ -27,6 +29,7 @@ public class RobotModel {
         this.distance = distance;
         this.angle = angle;
         this.squareSize = squareSize;
+        this.sonicValue = new SonicValue(0,0,0);
     }
 
     public int getX() {
@@ -84,5 +87,13 @@ public class RobotModel {
 
     public void setSquareSize(int squareSize) {
         this.squareSize = squareSize;
+    }
+
+    public SonicValue getSonicValue() {
+        return sonicValue;
+    }
+
+    public void setSonicValue(SonicValue sonicValue) {
+        this.sonicValue = sonicValue;
     }
 }

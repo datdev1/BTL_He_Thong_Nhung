@@ -26,6 +26,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.b21dccn216.vaxrobot.DevicePicking.PickDeviceActivity;
+import com.b21dccn216.vaxrobot.Model.RobotModel;
+import com.b21dccn216.vaxrobot.Model.SonicValue;
 import com.b21dccn216.vaxrobot.R;
 import com.b21dccn216.vaxrobot.Setting.SettingActivity;
 import com.b21dccn216.vaxrobot.databinding.ActivityMainBinding;
@@ -67,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                     WindowManager.LayoutParams.FLAG_FULLSCREEN);
         }
         // Khởi tạo presenter
-        presenter.setView(this);
+        presenter.setView(this, binding.mapView.getRobotModel());
 
         // Request permissions
         requestBluetoothPermissions();
@@ -349,7 +351,6 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     @Override
     public void showMessage(String message){
         binding.messages.setText("Message: \n" + message);
-
     }
 
     @Override
@@ -370,9 +371,13 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         alertDialog.show();
     }
 
+    public void setRawRobotModel(RobotModel r){
+        binding.mapView.setRawRobotModel(r);
+    }
+
     @Override
     public void updateRobotPosition( int distance){
-        binding.mapView.updateRobotPosition(distance);
+//        binding.mapView.updateRobotPosition(distance);
     }
 
     public void updateRobotAction(String action){
@@ -383,7 +388,11 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     @Override
     public void setRobotAngle(int deltaAngle){
 //        binding.mapView.setRobotAngle(binding.mapView.getRobotAngle() + deltaAngle);
-        binding.mapView.setRobotAngle(deltaAngle);
+//        binding.mapView.setRobotAngle(deltaAngle);
+    }
+
+    public void setRobotSonics(SonicValue sonicValue){
+//        binding.mapView.setRobotSonics();
     }
 
     private void setOnTouchBackground(ImageView img){
