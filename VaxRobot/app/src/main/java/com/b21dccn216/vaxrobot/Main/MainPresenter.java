@@ -188,6 +188,9 @@ public class MainPresenter implements MainContract.Presenter {
                 new BluetoothModel.MessageCallBack() {
                     @Override
                     public void onMessageReceived(String message) {
+//                        message =
+//                                "Real traveled: " + traveledDistance + "\n"
+//                                + message;
                         view.showMessage(message);
                         // parse message
                         parseBluetoothMessage(message);
