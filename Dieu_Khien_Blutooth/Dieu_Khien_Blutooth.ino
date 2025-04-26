@@ -4,6 +4,12 @@
 // #include <MPU6050.h>
 #include "MPU6050_6Axis_MotionApps20.h"
 #include <QMC5883LCompass.h>
+#include <PlayNote.h>
+
+// playNote
+PlayNote playnote;
+TaskHandle_t playNoteTaskHandle;
+bool isPlayNote = false;
 
 BluetoothSerial SerialBT;
 
@@ -179,6 +185,13 @@ void setup()
     0                     // Chạy trên lõi 0
   );
 
+  //playNote
+  playnote.setBuzzerPin(15);
+  playnote.play(784); // play a exactly Hz
+  playnote.play(880);
+  playnote.play(988);
+  playnote.play(1047);
+
   // xTaskCreatePinnedToCore(
   //   gy87Task,             // Task function
   //   "GY-87 Task",         // Name
@@ -186,6 +199,15 @@ void setup()
   //   NULL,                 // Parameter
   //   1,                    // Priority
   //   &gy87TaskHandle,      // Task handle
+  //   0                     // Core 0
+  // );
+  // xTaskCreatePinnedToCore(
+  //   playMusic,             // Task function
+  //   "Play Note",         // Name
+  //   1000,                 // Stack size (tùy RAM, bạn có thể tăng nếu lỗi)
+  //   NULL,                 // Parameter
+  //   2,                    // Priority
+  //   &playNoteTaskHandle,      // Task handle
   //   0                     // Core 0
   // );
 }
@@ -277,6 +299,9 @@ void loop()
       String set_alpha_encoder = dieu_khien.substring(8, dieu_khien.length());
       alphaEn = set_alpha_encoder.toFloat();
     }
+    else if (dieu_khien == "music"){
+      isPlayNote = true;
+    }
     else if (dieu_khien == "calculatingCalibration")
     {
       isCalibration = true;
@@ -323,7 +348,8 @@ void sendAllInformation()
     
     message += "YPR: [Y: " + String(ypr[0] * 180/M_PI, 2) + "; P: " + String(ypr[1] * 180/M_PI, 2) + "; R: " + String(ypr[2] * 180/M_PI, 2) + "]\n";
 
-    message += "Temp: " + String(temp) + "'C; Pres: " + String(pressure) + "Pa\n";
+    float altitude = calculateAltitude(float(pressure)/100, temp);
+    message += "Temp: " + String(temp) + "'C; Pres: " + String(float(pressure)/100) + "Pa; Alti" + String(altitude, 2) + "m\n";
   }
   
 
@@ -352,7 +378,15 @@ void flowTask(void * parameter) {
     leftDistance = getDistance(LEFT_TRIG, LEFT_ECHO);
     rightDistance = getDistance(RIGHT_TRIG, RIGHT_ECHO);
     frontDistance = getDistance(FRONT_TRIG, FRONT_ECHO);
-    // GY-87
+    gy87Task();
+    playMusic();
+    vTaskDelay(100 / portTICK_PERIOD_MS); // Kiểm tra mỗi 100ms
+  };
+}
+
+void gy87Task()
+{
+  // GY-87
     mpu.getMotion6(&accelX, &accelY, &accelZ, &gyroX, &gyroY, &gyroZ);
     temp = bmp.readTemperature();
     pressure = bmp.readPressure();
@@ -362,10 +396,7 @@ void flowTask(void * parameter) {
     compassZ = compass.getZ();
     compassHeading = compass.getAzimuth();
     calAngle();
-    vTaskDelay(100 / portTICK_PERIOD_MS); // Kiểm tra mỗi 100ms
-  };
-}
-
+};
 
 long getDistance(int TRIG_PIN, int ECHO_PIN) {
   digitalWrite(TRIG_PIN, LOW);
@@ -464,3 +495,39 @@ void getCalibrationMPU() {
   mpu.setZAccelOffset(0);
 }
 
+int countMusic = 0;
+
+struct PlayNote::notes song1[] = {
+	{"sol5", 0.5}, {"la5", 0.5}, {"sol5", 1}, {"0", 1},
+};
+int lenSong1 = sizeof(song1)/sizeof(PlayNote::notes);
+
+struct PlayNote::notes song2[] = {
+	{"do5", 0.5}, {"mi5", 0.5}, {"sol5", 0.5}, {"0", 1},
+};
+int lenSong2 = sizeof(song2)/sizeof(PlayNote::notes);
+
+struct PlayNote::notes song3[] = {
+	{"3'", 0.5}, {"6'", 0.5}, {"5'", 0.5}, {"0", 1},
+};
+int lenSong3 = sizeof(song3)/sizeof(PlayNote::notes);
+
+
+void playMusic()
+{
+  if(isPlayNote)
+  {
+    // long randNumber = random(1, 3);
+    if(countMusic == 0) playnote.playSong(song1, lenSong1);
+    else if(countMusic == 1) playnote.playSong(song2, lenSong2);
+    else if(countMusic == 2) playnote.playSong(song3, lenSong3);
+    
+    countMusic = (countMusic++)%3;
+    isPlayNote = false;
+  }
+}
+
+float calculateAltitude(float pressure, float temperature) {
+  const float P0 = 1013.25; // Áp suất chuẩn ở mực nước biển (hPa)
+  return (temperature + 273.15) / 0.0065 * (1 - pow(pressure / P0, 1.0 / 5.257));
+}
