@@ -301,6 +301,9 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             presenter.disconnect();
         });
 
+        binding.buttonMusic.setOnClickListener(v -> {
+           presenter.sendCommand("music");
+        });
 
 
     }

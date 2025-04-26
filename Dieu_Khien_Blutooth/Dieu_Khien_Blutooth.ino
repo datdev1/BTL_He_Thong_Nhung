@@ -33,6 +33,8 @@ QMC5883LCompass compass;
   /*---Orientation/Motion Variables---*/ 
   Quaternion q;           // [w, x, y, z]         Quaternion container
   VectorFloat gravity;    // [x, y, z]            Gravity vector
+  VectorInt16 aa;         // [x, y, z]            Accel sensor measurements
+  VectorInt16 aaReal;     // [x, y, z]            Gravity-free accel sensor measurements
   float ypr[3];           // [yaw, pitch, roll]   Yaw/Pitch/Roll container and gravity vector
 
 
@@ -310,8 +312,11 @@ void sendAllInformation()
     // Dữ liệu cảm biến siêu âm
     message += "Sonic: [L: " + String(leftDistance) + "; R: " + String(rightDistance) + "; F: " + String(frontDistance) + "]\n";
 
-    // Dữ liệu gia tốc
-    message += "Accel: [X: " + String(accelX) + "; Y: " + String(accelY) + "; Z: " + String(accelZ) + "]\n";
+    // Dữ liệu gia tốc raw
+    // message += "Accel: [X: " + String(accelX) + "; Y: " + String(accelY) + "; Z: " + String(accelZ) + "]\n";
+
+    //Gia tốc bỏ qua gia tốc trọng trường
+    message += "Accel: [X: " + String(aaReal.x) + "; Y: " + String(aaReal.y) + "; Z: " + String(aaReal.z) + "]\n";
 
     // Dữ liệu con quay hồi chuyển
     message += "Gyro: [X: " + String(gyroX) + "; Y: " + String(gyroY) + "; Z: " + String(gyroZ) + "]\n";
@@ -436,6 +441,15 @@ void calAngle()
       // Serial.print(ypr[1] * 180/M_PI);
       // Serial.print("\t");
       // Serial.println(ypr[2] * 180/M_PI);
+
+      mpu.dmpGetAccel(&aa, FIFOBuffer);
+      mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
+      // Serial.print("areal\t");
+      // Serial.print(aaReal.x);
+      // Serial.print("\t");
+      // Serial.print(aaReal.y);
+      // Serial.print("\t");
+      // Serial.println(aaReal.z);
   }
 }
 
