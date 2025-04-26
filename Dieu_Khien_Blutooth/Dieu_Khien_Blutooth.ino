@@ -256,19 +256,23 @@ void loop()
     }
     else if (dieu_khien == "FR")
     {
-      tien_phai();
+      // tien_phai();
+      phai();
     }
     else if (dieu_khien == "FL")
     {
-      tien_trai();
+      // tien_trai();
+      trai();
     }
     else if (dieu_khien == "BL")
     {
-      lui_phai();
+      // lui_phai();
+      phai();
     }
     else if (dieu_khien == "BR")
     {
-      lui_trai();
+      // lui_trai();
+      trai();
     }
     else if (dieu_khien == "S")
     {
