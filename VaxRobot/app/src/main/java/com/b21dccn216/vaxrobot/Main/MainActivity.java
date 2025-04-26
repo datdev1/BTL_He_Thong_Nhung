@@ -416,6 +416,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     }
 
 
+
     public void resetMap(){
         binding.mapView.resetMap();
     }

@@ -12,7 +12,7 @@ public class RobotModel {
 
     private int x;
     private int y;
-    private int distance;
+    private float distance;
     private float angle;
 
     private SonicValue sonicValue;
@@ -56,11 +56,11 @@ public class RobotModel {
         this.y = y;
     }
 
-    public int getDistance() {
+    public float getDistance() {
         return distance;
     }
 
-    public void setDistance(int distance) {
+    public void setDistance(float distance) {
         this.distance = distance;
     }
 
