@@ -32,12 +32,11 @@ public class MainPresenter implements MainContract.Presenter {
 
     private Handler handler;
 
-    private float receivedDistance = 0;
+    private float travelDistance = 0;
     private float traveledDistance = 0;
 
 
     private int compassAngle = 0;
-    private boolean isRoll = false;
 
     private RobotModel robotModelClone;
 
@@ -51,7 +50,6 @@ public class MainPresenter implements MainContract.Presenter {
     boolean isDown = false;
     boolean isLeft = false;
     boolean isRight = false;
-
 
     private String commandSend = "S";
     /*  commandSend value meaning:
@@ -110,27 +108,20 @@ public class MainPresenter implements MainContract.Presenter {
                 if(isUp){
                     if(isRight){
                         commandSend = "FR";
-                        setWhenRoll();
                     }else if(isLeft){
                         commandSend = "FL";
-                        setWhenRoll();
                     }else{
-                        setStopRoll();
                         commandSend = "F";
                     }
                 }else if(isDown){
                     if(isRight){
                         commandSend = "BR";
-                        setWhenRoll();
                     }else if(isLeft){
                         commandSend = "BL";
-                        setWhenRoll();
                     }else{
-                        setStopRoll();
                         commandSend = "B";
                     }
                 }else if(isRight){
-                    setWhenRoll();
                     if(isUp){
                         commandSend = "FR";
                     }else if(isDown){
@@ -139,7 +130,6 @@ public class MainPresenter implements MainContract.Presenter {
                         commandSend = "R";
                     }
                 }else if(isLeft){
-                    setWhenRoll();
                     if(isUp){
                         commandSend = "FL";
                     }else if(isDown){
@@ -158,17 +148,6 @@ public class MainPresenter implements MainContract.Presenter {
                 loopHandler();
             }
         }, 5);
-    }
-
-    private void setWhenRoll(){
-        Log.i("FIX_ROLL", "setWhenRoll: " + receivedDistance + " traveled Distance: " + traveledDistance);
-        isRoll = true;
-//        traveledDistance = receivedDistance;
-    }
-
-    private void setStopRoll(){
-        Log.i("FIX_ROLL", "setStopRoll: " + receivedDistance + " traveled Distance: " + traveledDistance);
-        isRoll = false;
     }
 
     @Override
@@ -202,27 +181,20 @@ public class MainPresenter implements MainContract.Presenter {
 //                        view.setRobotAngle((int) robotModelClone.getAngle());
 //                        view.setRobotSonics(son)
 
-                        if(!isRoll){
-                            float delta =  (receivedDistance - traveledDistance);
-                            if(delta >= squareSizeCm)
-                            {
-                                Log.d("WHEN_ROLL", "receivedDistance: " + receivedDistance);
+                        float delta =  (travelDistance - traveledDistance);
+                        if(delta / squareSizeCm > 1){
 //                            Log.d("MapView", "1delta: " + delta);
 //                            Log.d("MapView", "2travelDistance: " + travelDistance);
 
-//                            float intDelta = (delta - delta % squareSizeCm);
-                                // TODO:: MERGE INTO setRobotModel only
-                                robotModelClone.setDistance(delta);
-                                view.setRawRobotModel(robotModelClone);
-                                updated = true;
+                            int intDelta = (int) (delta - delta % squareSizeCm);
+                            // TODO:: MERGE INTO setRobotModel only
+                            robotModelClone.setDistance(intDelta);
+                            view.setRawRobotModel(robotModelClone);
+                            updated = true;
 //                            view.updateRobotPosition(intDelta);
-                                traveledDistance += (float)(delta);
+                            traveledDistance += (float)(intDelta);
 //                            Log.d("MapView", "3intDelta: " + intDelta);
 //                            Log.d("MapView", "4traveledDistance: " + traveledDistance);
-                            }
-
-                        }else{
-                            traveledDistance = receivedDistance;
                         }
                         if(!updated){
                             view.setRawRobotModel(robotModelClone);
@@ -268,7 +240,7 @@ public class MainPresenter implements MainContract.Presenter {
         try{
             String[] speedParts = lines[0].split("; ");
             double speed = Double.parseDouble(speedParts[0].split(": ")[1]);
-            receivedDistance = (float) Double.parseDouble(speedParts[1].split(": ")[1]);
+            travelDistance = (float) Double.parseDouble(speedParts[1].split(": ")[1]);
 //            Log.i("MapView", "Speed = " + speed + ", Travel Distance = " + travelDis);
         }catch (Exception e){
             Log.e("MapView", "parseBluetoothMessage: " + e);
