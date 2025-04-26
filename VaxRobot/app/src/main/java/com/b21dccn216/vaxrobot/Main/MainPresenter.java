@@ -188,7 +188,7 @@ public class MainPresenter implements MainContract.Presenter {
                             robotModelClone.setDistance(intDelta);
                             view.setRawRobotModel(robotModelClone);
                             updated = true;
-//                            view.updateRobotPosition(intDelta);
+
                             traveledDistance += (float)(intDelta);
 //                            Log.d("MapView", "3intDelta: " + intDelta);
 //                            Log.d("MapView", "4traveledDistance: " + traveledDistance);
