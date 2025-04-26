@@ -284,25 +284,34 @@ public class MapView extends View {
         invalidate();
     }
 
+    public void setRobotAngle(float angle){
+        if(angle > 360){
+            angle = angle % 360;
+        }else if(angle < 0){
+            angle = 360 + (angle % 360);
+        }
+        this.robotModel.setAngle(angle);
+
+        Log.d("MapView", "Set angle: " + angle);
+        invalidate();
+    }
 
     public float getRobotAngle(){return robotModel.getAngle();}
 
 
     // Update robot position
-    private void updateRobotPosition() {
+    public void updateRobotPosition() {
 //        // TODO: Update map and set index to 1,2,3
         Log.i("VALIDATE", "Distance received: " + robotModel.getDistance());
         int[] oldPosition = new int[] { robotModel.getX(), robotModel.getY()};
         Log.i("VALIDATE", "Old position x: " + robotModel.getX() + " Y: " + robotModel.getY());
-        float[] newPosition = calculateNewPosition(
-                robotModel.getFloatX(), robotModel.getFloatY(),
-                robotModel.getAngle(), robotModel.getDistance());
+        float[] newPosition = calculateNewPosition(robotModel.getFloatX(), robotModel.getFloatY(), robotModel.getAngle(), robotModel.getDistance());
 
 
         // TODO : cache decimal
         robotModel.setFloatX( newPosition[0]);
         robotModel.setFloatY( newPosition[1]);
-        Log.i("VALIDATE_FLOAT", "New float position x: " + robotModel.getFloatX() + " Y: " + robotModel.getFloatY());
+
         robotModel.setX((int) newPosition[0]);
         robotModel.setY((int) newPosition[1]);
 
@@ -314,32 +323,31 @@ public class MapView extends View {
 
     private float[] calculateNewPosition(
             float x, float y,
-            float angleDeg,
-            float distanceCm) {
+            double angleDeg,
+            double distanceCm) {
         // Convert angle to radians
-        float angleRad = (float) Math.toRadians(angleDeg);
+        double angleRad = Math.toRadians(angleDeg);
 
         // Calculate delta in cm
-        float dx = (float) (distanceCm * Math.sin(angleRad));
-        float dy = (float) (distanceCm * Math.cos(angleRad));
+        double dx = distanceCm * Math.sin(angleRad);
+        double dy = distanceCm * Math.cos(angleRad);
 
         // Convert cm to grid index delta
-        float deltaX =  (dx / squareSizeCm); // 10cm per cell
-        float deltaY = (dy / squareSizeCm);
+        int deltaX = (int) Math.round(dx / squareSizeCm); // 10cm per cell
+        int deltaY = (int) Math.round(dy / squareSizeCm);
 
         String action = robotModel.getAction();
         // Y axis usually increases downward in arrays, so invert dy if needed
         float newX = 0, newY = 0;
-        if(action.equals("F")){
+        if(action.contains("F")){
             newX = x + deltaX;
             newY = y - deltaY; // subtract if y=0 is top of map
             return new float[]{newX, newY};
-        }else if(action.equals("B")){
+        }else if(action.contains("B")){
             newX = x - deltaX;
             newY = y + deltaY; // subtract if y=0 is top of map
             return new float[]{newX, newY};
         }else{
-            Log.d("WHEN_ROLL", "action: " + action);
             return new float[]{x, y};
         }
     }
@@ -421,7 +429,7 @@ public class MapView extends View {
 
     public void setRawRobotModel(RobotModel robotModelClone) {
         // TODO: process to call updateRobotPosition
-//        robotModelClone.setAngle(mapAngle(robotModelClone.getAngle()));
+        robotModelClone.setAngle(mapAngle(robotModelClone.getAngle()));
         this.robotModel = robotModelClone;
         updateRobotPosition();
 
@@ -452,16 +460,16 @@ public class MapView extends View {
     }
 
 
-//    public float mapAngle(float angle){
-//        if(angle > 360){
-//            angle = angle % 360;
-//        }else if(angle < 0){
-//            angle = 360 + (angle % 360);
-//        }
+    public float mapAngle(float angle){
+        if(angle > 360){
+            angle = angle % 360;
+        }else if(angle < 0){
+            angle = 360 + (angle % 360);
+        }
 //        Log.d("MapView", "Set angle: " + angle);
-//        return angle;
-//
-//    }
+        return angle;
+
+    }
 
     public void resetMap(){
         for(int i = 0; i<map.length; i++){
