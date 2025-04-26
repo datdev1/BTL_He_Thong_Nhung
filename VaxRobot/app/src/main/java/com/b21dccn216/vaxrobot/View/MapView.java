@@ -333,11 +333,11 @@ public class MapView extends View {
         String action = robotModel.getAction();
         // Y axis usually increases downward in arrays, so invert dy if needed
         int newX = 0, newY = 0;
-        if(action.equals("F")){
+        if(action.contains("F")){
             newX = x + deltaX;
             newY = y - deltaY; // subtract if y=0 is top of map
             return new int[]{newX, newY};
-        }else if(action.equals("B")){
+        }else if(action.contains("B")){
             newX = x - deltaX;
             newY = y + deltaY; // subtract if y=0 is top of map
             return new int[]{newX, newY};
@@ -390,7 +390,13 @@ public class MapView extends View {
 
         while (true) {
             if (x0 >= 0 && y0 >= 0 && x0 < map.length && y0 < map[0].length) {
-                map[x0][y0] = linePaint;
+                if(linePaint == 1){
+                    map[x0][y0] = linePaint;
+                }else{
+                    if(map[x0][y0] != 1){
+                        map[x0][y0] = linePaint;
+                    }
+                }
             }
 
             if (x0 == x1 && y0 == y1) break;

@@ -46,6 +46,11 @@ public class MainPresenter implements MainContract.Presenter {
     private boolean isShowSeekBaGroup = true;
     private boolean isSettingCompass = false;
 
+    boolean isUp = false;
+    boolean isDown = false;
+    boolean isLeft = false;
+    boolean isRight = false;
+
     private String commandSend = "S";
     /*  commandSend value meaning:
                                     F: Forward
@@ -99,9 +104,47 @@ public class MainPresenter implements MainContract.Presenter {
             public void run() {
                 // Send command to robot continuously 1 time for 5 millisecond
                 // Default send S - Stop
+
+                if(isUp){
+                    if(isRight){
+                        commandSend = "FR";
+                    }else if(isLeft){
+                        commandSend = "FL";
+                    }else{
+                        commandSend = "F";
+                    }
+                }else if(isDown){
+                    if(isRight){
+                        commandSend = "BR";
+                    }else if(isLeft){
+                        commandSend = "BL";
+                    }else{
+                        commandSend = "B";
+                    }
+                }else if(isRight){
+                    if(isUp){
+                        commandSend = "FR";
+                    }else if(isDown){
+                        commandSend = "BR";
+                    }else{
+                        commandSend = "R";
+                    }
+                }else if(isLeft){
+                    if(isUp){
+                        commandSend = "FL";
+                    }else if(isDown){
+                        commandSend = "BL";
+                    }else{
+                        commandSend = "L";
+                    }
+                }else{
+                    commandSend = "S";
+                }
+
+                robotModelClone.setAction(commandSend);
+
                 sendCommand(commandSend);
                 // TODO: Mergin into set robotModel only
-                robotModelClone.setAction(commandSend);
                 loopHandler();
             }
         }, 5);
@@ -325,4 +368,19 @@ public class MainPresenter implements MainContract.Presenter {
         view.resetMap();
     }
 
+    public void setUp(boolean up) {
+        isUp = up;
+    }
+
+    public void setDown(boolean down) {
+        isDown = down;
+    }
+
+    public void setLeft(boolean left) {
+        isLeft = left;
+    }
+
+    public void setRight(boolean right) {
+        isRight = right;
+    }
 }

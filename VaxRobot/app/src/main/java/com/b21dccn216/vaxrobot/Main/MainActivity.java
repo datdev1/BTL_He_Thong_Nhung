@@ -175,12 +175,14 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                 switch (motionEvent.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         // Finger touched the button
-                        presenter.setCommandSend("F");
+//                        presenter.setCommandSend("F");
+                        presenter.setUp(true);
                         setOnTouchBackground(binding.up);
                         return true;
                     case MotionEvent.ACTION_UP:
                         // Finger lifted off the button
-                        presenter.setCommandSend("S");
+//                        presenter.setCommandSend("S");
+                        presenter.setUp(false);
                         setOnNotTouchBackground(binding.up);
                         return true;
                 }
@@ -193,12 +195,14 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                 switch (motionEvent.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         // Finger touched the button
-                        presenter.setCommandSend("B");
+//                        presenter.setCommandSend("B");
+                        presenter.setDown(true);
                         setOnTouchBackground(binding.down);
                         return true;
                     case MotionEvent.ACTION_UP:
                         // Finger lifted off the button
-                        presenter.setCommandSend("S");
+//                        presenter.setCommandSend("S");
+                        presenter.setDown(false);
                         setOnNotTouchBackground(binding.down);
                         return true;
                 }
@@ -212,12 +216,14 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                 switch (motionEvent.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         // Finger touched the button
-                        presenter.setCommandSend("L");
+//                        presenter.setCommandSend("L");
+                        presenter.setLeft(true);
                         setOnTouchBackground(binding.left);
                         return true;
                     case MotionEvent.ACTION_UP:
                         // Finger lifted off the button
-                        presenter.setCommandSend("S");
+//                        presenter.setCommandSend("S");
+                        presenter.setLeft(false);
                         setOnNotTouchBackground(binding.left);
                         return true;
                 }
@@ -231,12 +237,14 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                 switch (motionEvent.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         // Finger touched the button
-                        presenter.setCommandSend("R");
+//                        presenter.setCommandSend("R");
+                        presenter.setRight(true);
                         setOnTouchBackground(binding.right);
                         return true;
                     case MotionEvent.ACTION_UP:
                         // Finger lifted off the button
-                        presenter.setCommandSend("S");
+//                        presenter.setCommandSend("S");
+                        presenter.setRight(false);
                         setOnNotTouchBackground(binding.right);
                         return true;
                 }
