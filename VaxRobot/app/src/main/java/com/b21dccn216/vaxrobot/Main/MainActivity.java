@@ -144,9 +144,12 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     }
 
 
-
     @SuppressLint("ClickableViewAccessibility")
     private void setUpButton(){
+        binding.center.setOnClickListener(v -> {
+            binding.mapView.centerOnPoint();
+        });
+
         binding.select.setOnClickListener(v -> {
             deviceList = getPairedDevices();
             Intent intent = new Intent(this, PickDeviceActivity.class);
@@ -324,6 +327,10 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         }
     }
 
+
+
+
+
 //
 //    Implementation of View
 //
@@ -374,30 +381,6 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         alertDialog.show();
     }
 
-    public void setRawRobotModel(RobotModel r){
-        binding.mapView.setRawRobotModel(r);
-    }
-
-    @Override
-    public void updateRobotPosition( int distance){
-//        binding.mapView.updateRobotPosition(distance);
-    }
-
-    public void updateRobotAction(String action){
-        binding.mapView.setRobotAction(action);
-    }
-
-
-    @Override
-    public void setRobotAngle(int deltaAngle){
-//        binding.mapView.setRobotAngle(binding.mapView.getRobotAngle() + deltaAngle);
-//        binding.mapView.setRobotAngle(deltaAngle);
-    }
-
-    public void setRobotSonics(SonicValue sonicValue){
-//        binding.mapView.setRobotSonics();
-    }
-
     private void setOnTouchBackground(ImageView img){
         img.setBackgroundColor(getResources().getColor(R.color.lightBeigeColor));
     }
@@ -414,4 +397,19 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     public void toastMessage(String mess){
         Toast.makeText(this, mess, Toast.LENGTH_SHORT).show();
     }
+
+
+    //
+    //      Interact with Robot model / mapview
+    //
+
+    public void setRawRobotModel(RobotModel r){
+        binding.mapView.setRawRobotModel(r);
+    }
+
+
+    public void resetMap(){
+        binding.mapView.resetMap();
+    }
+
 }

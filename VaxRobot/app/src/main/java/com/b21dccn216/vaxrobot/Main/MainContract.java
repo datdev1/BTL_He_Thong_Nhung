@@ -24,9 +24,6 @@ public interface MainContract {
         void showError(String error);
         void showAlertDialog(String title, String message);
 
-        void updateRobotPosition( int distance);
-
-        void setRobotAngle(int deltaAngle);
     }
 
 }

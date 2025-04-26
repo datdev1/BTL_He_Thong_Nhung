@@ -90,6 +90,11 @@
         android:layout_marginHorizontal="8dp"
         android:layout_height="2dp"/>
     <Button
+        android:id="@+id/deleteMap"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Delete Map"/>
+    <Button
         android:id="@+id/select"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

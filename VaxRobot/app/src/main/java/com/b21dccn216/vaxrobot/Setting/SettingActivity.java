@@ -57,6 +57,11 @@ public class SettingActivity extends AppCompatActivity {
             finish();
         });
 
+        binding.deleteMap.setOnClickListener(v -> {
+            presenter.resetMap();
+
+        });
+
 
     }
 }

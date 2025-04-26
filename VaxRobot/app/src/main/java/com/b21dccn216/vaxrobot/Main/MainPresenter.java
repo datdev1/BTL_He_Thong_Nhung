@@ -16,6 +16,7 @@ import androidx.core.app.ActivityCompat;
 
 import com.b21dccn216.vaxrobot.Model.BluetoothModel;
 import com.b21dccn216.vaxrobot.Model.RobotModel;
+import com.b21dccn216.vaxrobot.Model.SonicValue;
 
 import java.util.Set;
 
@@ -101,7 +102,6 @@ public class MainPresenter implements MainContract.Presenter {
                 sendCommand(commandSend);
                 // TODO: Mergin into set robotModel only
                 robotModelClone.setAction(commandSend);
-                view.updateRobotAction(commandSend);
                 loopHandler();
             }
         }, 5);
@@ -130,25 +130,28 @@ public class MainPresenter implements MainContract.Presenter {
                         // Map yAngle into 0-360
 //                        int mapped = (int) yAngle;
 //                        if(mapped < 0) mapped = 360 + mapped;
-
+                        boolean updated = false;
                         // TODO:: MERGE INTO setRobotModel only
-                        view.setRawRobotModel(robotModelClone);
 //                        view.setRobotAngle((int) robotModelClone.getAngle());
 //                        view.setRobotSonics(son)
 
                         float delta =  (travelDistance - traveledDistance);
                         if(delta / squareSizeCm > 1){
-                            Log.d("MapView", "1delta: " + delta);
-                            Log.d("MapView", "2travelDistance: " + travelDistance);
+//                            Log.d("MapView", "1delta: " + delta);
+//                            Log.d("MapView", "2travelDistance: " + travelDistance);
 
                             int intDelta = (int) (delta - delta % squareSizeCm);
                             // TODO:: MERGE INTO setRobotModel only
                             robotModelClone.setDistance(intDelta);
                             view.setRawRobotModel(robotModelClone);
+                            updated = true;
 //                            view.updateRobotPosition(intDelta);
                             traveledDistance += (float)(intDelta);
-                            Log.d("MapView", "3intDelta: " + intDelta);
-                            Log.d("MapView", "4traveledDistance: " + traveledDistance);
+//                            Log.d("MapView", "3intDelta: " + intDelta);
+//                            Log.d("MapView", "4traveledDistance: " + traveledDistance);
+                        }
+                        if(!updated){
+                            view.setRawRobotModel(robotModelClone);
                         }
                     }
                     @Override
@@ -210,12 +213,21 @@ public class MainPresenter implements MainContract.Presenter {
 //        }
 
         // 3. Sonic
-        String[] sonicParts = lines[2].replaceAll("[^0-9;]", "").split(";");
-        int sonicL = Integer.parseInt(sonicParts[0]);
-        int sonicR = Integer.parseInt(sonicParts[1]);
-        int sonicF = Integer.parseInt(sonicParts[2]);
-        int[] sonicValues = new int[]{sonicL, sonicR, sonicF};
-        Log.i("MapView", "Sonic L/R/F = " + sonicL + "/" + sonicR + "/" + sonicF);
+        try{
+            String[] sonicParts = lines[2].replaceAll("[^0-9;]", "").split(";");
+            int sonicL = Integer.parseInt(sonicParts[0]);
+            int sonicR = Integer.parseInt(sonicParts[1]);
+            int sonicF = Integer.parseInt(sonicParts[2]);
+            SonicValue sonicValue = new SonicValue(
+                    sonicL,
+                    sonicR,
+                    sonicF
+            );
+//            Log.i("MapView", "Sonic L/R/F = " + sonicL + "/" + sonicR + "/" + sonicF);
+            robotModelClone.setSonicValue(sonicValue);
+        }catch (Exception e){
+            Log.e("MapView", "parseBluetoothMessage: " + e);
+        }
 
 
         // 4. Accelerometer
@@ -256,7 +268,7 @@ public class MainPresenter implements MainContract.Presenter {
         // 8. Compass
         try{
             String[] compassParts = lines[7].replaceAll("[^0-9\\-; ]", "").split("; ");
-            Log.d("MapView", compassParts[3]);
+//            Log.d("MapView", compassParts[3]);
 //            int compassX = Integer.parseInt(compassParts[0].split(": ")[1]);
 //            int compassY = Integer.parseInt(compassParts[1].split(": ")[1]);
 //            int compassZ = Integer.parseInt(compassParts[2].split(": ")[1]);
@@ -307,6 +319,10 @@ public class MainPresenter implements MainContract.Presenter {
         int mapped = (int) yAngle;
         if(mapped < 0) mapped = 360 + mapped;
         return mapped;
+    }
+
+    public void resetMap(){
+        view.resetMap();
     }
 
 }
