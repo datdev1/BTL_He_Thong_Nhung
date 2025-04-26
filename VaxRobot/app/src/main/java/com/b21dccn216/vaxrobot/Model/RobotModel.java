@@ -6,6 +6,10 @@ x, y is index of robot in matrix
 angle is the angle between robot and y-axis
  */
 public class RobotModel {
+    private float floatX;
+    private float floatY;
+
+
     private int x;
     private int y;
     private int distance;
@@ -20,12 +24,16 @@ public class RobotModel {
     public RobotModel(int x, int y, int squareSize) {
         this.x = x;
         this.y = y;
+        this.floatX = x;
+        this.floatY = y;
         this.squareSize = squareSize;
     }
 
     public RobotModel(int x, int y, int distance, float angle, int squareSize) {
         this.x = x;
         this.y = y;
+        this.floatX = (float) x;
+        this.floatY = (float) y;
         this.distance = distance;
         this.angle = angle;
         this.squareSize = squareSize;
@@ -95,5 +103,21 @@ public class RobotModel {
 
     public void setSonicValue(SonicValue sonicValue) {
         this.sonicValue = sonicValue;
+    }
+
+    public float getFloatX() {
+        return floatX;
+    }
+
+    public void setFloatX(float floatX) {
+        this.floatX = floatX;
+    }
+
+    public float getFloatY() {
+        return floatY;
+    }
+
+    public void setFloatY(float floatY) {
+        this.floatY = floatY;
     }
 }

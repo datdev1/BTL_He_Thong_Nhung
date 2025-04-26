@@ -32,6 +32,7 @@ public class MapView extends View {
 
     // Initiate map
     private int[][] map = new int[numberGridBox][numberGridBox];
+
     // Robot Model to save position -> index in map, angle
     private RobotModel robotModel;
     // Image of robot
@@ -302,21 +303,26 @@ public class MapView extends View {
     public void updateRobotPosition() {
 //        // TODO: Update map and set index to 1,2,3
         Log.i("VALIDATE", "Distance received: " + robotModel.getDistance());
-
+        int[] oldPosition = new int[] { robotModel.getX(), robotModel.getY()};
         Log.i("VALIDATE", "Old position x: " + robotModel.getX() + " Y: " + robotModel.getY());
-        int[] newPosition = calculateNewPosition(robotModel.getX(), robotModel.getY(), robotModel.getAngle(), robotModel.getDistance());
+        float[] newPosition = calculateNewPosition(robotModel.getFloatX(), robotModel.getFloatY(), robotModel.getAngle(), robotModel.getDistance());
 
-        robotModel.setX(newPosition[0]);
-        robotModel.setY(newPosition[1]);
+
+        // TODO : cache decimal
+        robotModel.setFloatX( newPosition[0]);
+        robotModel.setFloatY( newPosition[1]);
+
+        robotModel.setX((int) newPosition[0]);
+        robotModel.setY((int) newPosition[1]);
 
         Log.i("VALIDATE", "New position x: " + robotModel.getX() + " Y: " + robotModel.getY());
-        drawLine(robotModel.getX(), robotModel.getY(), newPosition[0], newPosition[1], 1);
+        drawLine(oldPosition[0], oldPosition[1], robotModel.getX(), robotModel.getY(), 1);
 //        centerOnPoint(robotModel.getXAxis(), robotModel.getYAxis());
     }
 
 
-    private int[] calculateNewPosition(
-            int x, int y,
+    private float[] calculateNewPosition(
+            float x, float y,
             double angleDeg,
             double distanceCm) {
         // Convert angle to radians
@@ -332,17 +338,17 @@ public class MapView extends View {
 
         String action = robotModel.getAction();
         // Y axis usually increases downward in arrays, so invert dy if needed
-        int newX = 0, newY = 0;
+        float newX = 0, newY = 0;
         if(action.contains("F")){
             newX = x + deltaX;
             newY = y - deltaY; // subtract if y=0 is top of map
-            return new int[]{newX, newY};
+            return new float[]{newX, newY};
         }else if(action.contains("B")){
             newX = x - deltaX;
             newY = y + deltaY; // subtract if y=0 is top of map
-            return new int[]{newX, newY};
+            return new float[]{newX, newY};
         }else{
-            return new int[]{x, y};
+            return new float[]{x, y};
         }
     }
 
