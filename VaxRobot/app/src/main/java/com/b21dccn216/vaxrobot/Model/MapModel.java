@@ -66,23 +66,19 @@ public class MapModel {
         // TODO: process sonic value
         // sonic left
         float angle = (robotModel.getAngle() + 270) % 360;
-        Log.d("MapView", "angle: " + angle);
         float[] leftWall = calculateWallPosition(
                 robotModel.getFloatX(), robotModel.getFloatY(),
                 angle, robotModel.getSonicValue().getLeft());
 
-        drawLine(
-                robotModel.getFloatX(), robotModel.getFloatX(),
-                leftWall[0], leftWall[1],
-                2);
+        drawLine(robotModel.getFloatX(), robotModel.getFloatY(),
+                leftWall[0], leftWall[1],2);
 
         //sonic right
         float rightAngle = (robotModel.getAngle() + 90) % 360;
         float[] rightWall = calculateWallPosition(
                 robotModel.getFloatX(), robotModel.getFloatY(),
                 rightAngle, robotModel.getSonicValue().getRight());
-        drawLine(
-                robotModel.getFloatX(), robotModel.getFloatY(),
+        drawLine(robotModel.getFloatX(), robotModel.getFloatY(),
                 rightWall[0], rightWall[1], 2);
 
         // sonic front
