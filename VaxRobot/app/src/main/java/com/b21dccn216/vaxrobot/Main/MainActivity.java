@@ -150,17 +150,6 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             binding.mapView.centerOnRobotPosition();
         });
 
-        binding.select.setOnClickListener(v -> {
-            deviceList = getPairedDevices();
-            Intent intent = new Intent(this, PickDeviceActivity.class);
-            ArrayList<String> deviceNameList = deviceList.stream()
-                    .map(pair -> pair.second)
-                    .collect(Collectors.toCollection(ArrayList::new));
-
-            intent.putExtra(PickDeviceActivity.EXTRA_DEVICE_LIST, deviceNameList);
-            devicePickerLauncher.launch(intent);
-
-        });
 
         binding.setting.setOnClickListener( v-> {
             Intent intent = new Intent(this, SettingActivity.class);
@@ -295,14 +284,26 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         });
 
         binding.status.setOnClickListener(v -> {
-            presenter.disconnect();
+            presenter.processOnStatusClick();
         });
+
 
         binding.buttonMusic.setOnClickListener(v -> {
            presenter.sendCommand("music");
         });
 
 
+    }
+
+    public void startPickDeviceActivity(){
+        deviceList = getPairedDevices();
+        Intent intent = new Intent(this, PickDeviceActivity.class);
+        ArrayList<String> deviceNameList = deviceList.stream()
+                .map(pair -> pair.second)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        intent.putExtra(PickDeviceActivity.EXTRA_DEVICE_LIST, deviceNameList);
+        devicePickerLauncher.launch(intent);
     }
 
     // Optional: handle result from enable request

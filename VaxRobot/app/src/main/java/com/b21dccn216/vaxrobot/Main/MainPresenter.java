@@ -218,6 +218,14 @@ public class MainPresenter implements MainContract.Presenter {
         view.showDisconnected();
     }
 
+    public void processOnStatusClick(){
+        if(model.isConnected()){
+            disconnect();
+        }else{
+            view.startPickDeviceActivity();
+        }
+    }
+
     // TODO:: get Heading.
     private void processBluetoothMessage(String fullMessage) {
         RobotModel robotModel = new RobotModel();
