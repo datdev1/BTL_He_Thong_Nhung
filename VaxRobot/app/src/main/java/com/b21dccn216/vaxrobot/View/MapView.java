@@ -3,6 +3,7 @@ package com.b21dccn216.vaxrobot.View;
 import static com.b21dccn216.vaxrobot.Model.MapModel.mapShapeSize;
 import static com.b21dccn216.vaxrobot.Model.MapModel.numberGridBox;
 import static com.b21dccn216.vaxrobot.Model.MapModel.squareSize;
+import static com.b21dccn216.vaxrobot.Model.MapModel.squareSizeCm;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -50,6 +51,11 @@ public class MapView extends View {
     private float lastTouchX, lastTouchY;
     private int activePointerId = -1;
     private ScaleGestureDetector scaleDetector;
+
+    // Variable for calculating distance
+    private float[] firstPoint = null;
+    private float[] lastPoint = null;
+    private boolean isCalculatingMode = false;
 
     public MapView(Context context) {
         super(context);
@@ -113,6 +119,8 @@ public class MapView extends View {
         canvas.translate(translateX, translateY);
         canvas.scale(scaleFactor, scaleFactor);
 
+
+
         // Draw path / map content
         for(int i = 0; i<map.length; i++){
             for(int j = 0; j<map[i].length; j++){
@@ -147,7 +155,19 @@ public class MapView extends View {
 
         drawGrid(canvas);
         drawRobot(canvas);
+        if(isCalculatingMode){
+            if (firstPoint != null) {
+                canvas.drawCircle(firstPoint[0], firstPoint[1], squareSize / 4f, borderPaint);
+            }
+            if (lastPoint != null) {
+                canvas.drawCircle(lastPoint[0], lastPoint[1], squareSize / 4f, borderPaint);
+                canvas.drawLine(firstPoint[0], firstPoint[1], lastPoint[0], lastPoint[1], borderPaint);
+                float dis = calculateDistance(firstPoint, lastPoint)/squareSize*squareSizeCm;
+                borderPaint.setTextSize(48);
+                canvas.drawText(String.format("%.2f", dis) + "cm", (firstPoint[0] + lastPoint[0])/2 + squareSize/3, (firstPoint[1] + lastPoint[1])/2 - squareSize/2, borderPaint);
 
+            }
+        }
         canvas.restore();
     }
 
@@ -209,7 +229,22 @@ public class MapView extends View {
             case MotionEvent.ACTION_DOWN: {
                 lastTouchX = event.getX();
                 lastTouchY = event.getY();
+                if(isCalculatingMode){
+                    float mapX = (lastTouchX - translateX)/scaleFactor;
+                    float mapY = (lastTouchY - translateY)/scaleFactor;
+                    if(firstPoint == null){
+                        firstPoint = new float[]{mapX, mapY};
+                    }else if(lastPoint == null){
+                        lastPoint = new float[]{mapX, mapY};
+                    }else{
+                        firstPoint = new float[]{mapX, mapY};
+                        lastPoint = null;
+                    }
+
+                }
                 activePointerId = event.getPointerId(0);
+
+                invalidate();
                 break;
             }
             case MotionEvent.ACTION_MOVE: {
@@ -330,6 +365,24 @@ public class MapView extends View {
         invalidate();
     }
 
+    public boolean isCalculatingMode() {
+        return isCalculatingMode;
+    }
+
+    public void setCalculatingMode(boolean calculatingMode) {
+        isCalculatingMode = calculatingMode;
+        if(!isCalculatingMode){
+            firstPoint = null;
+            lastPoint = null;
+        }
+        invalidate();
+    }
+
+    private float calculateDistance(float[] p1, float[] p2) {
+        float dx = p2[0] - p1[0];
+        float dy = p2[1] - p1[1];
+        return (float) Math.sqrt(dx * dx + dy * dy);
+    }
 
 }
 

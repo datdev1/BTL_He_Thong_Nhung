@@ -292,7 +292,14 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
            presenter.sendCommand("music");
         });
 
-
+        binding.measure.setOnClickListener(v -> {
+            binding.mapView.setCalculatingMode(!binding.mapView.isCalculatingMode());
+            if(binding.mapView.isCalculatingMode()){
+                binding.measure.setAlpha(1.f);
+            }else {
+                binding.measure.setAlpha(0.5f);
+            }
+        });
     }
 
     public void startPickDeviceActivity(){
@@ -336,8 +343,8 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
 
     @Override
     public void showConnectionFailed() {
-        binding.status.setImageResource(R.drawable.baseline_do_not_disturb_24);
-        binding.status.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.greenColor));
+        binding.status.setImageResource(R.drawable.baseline_bluetooth_disabled_24);
+        binding.status.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.redColor));
 
         Toast.makeText(this, "Connection Failed", Toast.LENGTH_SHORT).show();
     }

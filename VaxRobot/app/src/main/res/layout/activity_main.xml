@@ -32,6 +32,23 @@
         android:id="@+id/topPanel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/leftPanel"
+        android:gravity="center_vertical">
+        <View
+            android:id="@+id/measure"
+            android:layout_width="32dp"
+            android:alpha="0.5"
+            android:layout_height="32dp"
+            android:background="@drawable/baseline_calculate_24"
+            android:layout_margin="8dp"
+            />
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/leftPanel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -54,7 +71,7 @@
             android:id="@+id/status"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:src="@drawable/baseline_do_not_disturb_24"
+            android:src="@drawable/baseline_bluetooth_disabled_24"
             android:layout_margin="8dp" />
 
 <!--        <ImageView-->
