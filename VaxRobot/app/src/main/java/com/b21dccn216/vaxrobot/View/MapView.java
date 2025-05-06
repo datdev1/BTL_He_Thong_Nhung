@@ -107,7 +107,7 @@ public class MapView extends View {
         super.onDraw(canvas);
         if(mapModel == null) return;
 
-        int[][] map = mapModel.getMap();
+        float[][] map = mapModel.getMap();
         canvas.save();
 
         canvas.translate(translateX, translateY);
@@ -116,18 +116,31 @@ public class MapView extends View {
         // Draw path / map content
         for(int i = 0; i<map.length; i++){
             for(int j = 0; j<map[i].length; j++){
+                if(map[i][j] != 0){
+                    Log.i("MAP_VALUE", "i: " + i + " j: " + j + " value: " + map[i][j] + "");
+                }
                 if(map[i][j] == 1){
                     canvas.drawRect(i*squareSize, j*squareSize,
                             i*squareSize + squareSize, j*squareSize + squareSize,
                             pathPaint);
-                }else if(map[i][j] == 2){
+                }else if(map[i][j] >= 2.0f && map[i][j] <= 3.0f){
+                    int alpha = (int) ((map[i][j] - 2.0F)*100);
+                    spacePaint.setAlpha(alpha);
                     canvas.drawRect(i*squareSize, j*squareSize,
                             i*squareSize + squareSize, j*squareSize + squareSize,
                             spacePaint);
-                }else if (map[i][j] == 3){
+                    spacePaint.setAlpha(100);
+                }else if (map[i][j] >= 4.F && map[i][j] <= 5.F){
+                    int alpha = (int) ((map[i][j] - 4.0)*100);
+                    obstaclePaint.setAlpha(alpha);
                     canvas.drawRect(i*squareSize, j*squareSize,
                             i*squareSize + squareSize, j*squareSize + squareSize,
                             obstaclePaint);
+                    obstaclePaint.setAlpha(100);
+                }else if(map[i][j] == 7){
+                    canvas.drawRect(i*squareSize, j*squareSize,
+                            i*squareSize + squareSize, j*squareSize + squareSize,
+                            borderPaint);
                 }
             }
         }

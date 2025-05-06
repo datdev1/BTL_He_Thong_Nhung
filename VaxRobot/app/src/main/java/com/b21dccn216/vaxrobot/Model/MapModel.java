@@ -12,7 +12,7 @@ public class MapModel {
     public static final int squareSize = (int) mapShapeSize/numberGridBox;
 
     // Initiate map
-    private int[][] map = new int[numberGridBox][numberGridBox];
+    private float[][] map = new float[numberGridBox][numberGridBox];
     // Each grid box size is 10 cm in real life
     public static final float squareSizeCm = 10;
 
@@ -34,25 +34,26 @@ public class MapModel {
     }
 
     public void updateRobotModel(RobotModel newRobotModel){
-        robotModel.setAction(newRobotModel.getAction());
+        if(!newRobotModel.getAction().equals("S")) robotModel.setAction(newRobotModel.getAction());
         robotModel.setAngle(newRobotModel.getAngle());
-        moveCar(newRobotModel.getDistanceCm(), newRobotModel.getAction());
+        if(newRobotModel.getDistanceCm() != 0)moveCar(newRobotModel.getDistanceCm(), robotModel.getAction());
         processSonicValue(newRobotModel.getSonicValue());
     }
 
     public void moveCar(float distanceCm,  String action){
 //        // TODO: Update map and set index to 1,2,3
         float[] oldPosition = new float[] { robotModel.getFloatX(), robotModel.getFloatY()};
+        Log.i("fix_delta", "1.distanceCm " + distanceCm);
+        Log.i("fix_delta", "2.oldPosition: " + robotModel.getFloatX() + " Y: " + robotModel.getFloatY());
 
-        Log.i("VALIDATE_FLOAT", "Old float position x: " + robotModel.getFloatX() + " Y: " + robotModel.getFloatY());
-        float[] newPosition = calculateNewPosition(
+        double[] newPosition = calculateNewPosition(
                 robotModel.getFloatX(), robotModel.getFloatY(),
                 robotModel.getAngle(), distanceCm, action);
 
         // TODO : cache decimal
-        robotModel.setFloatX( newPosition[0]);
-        robotModel.setFloatY( newPosition[1]);
-        Log.i("VALIDATE_FLOAT", "New float position x: " + robotModel.getFloatX() + " Y: " + robotModel.getFloatY());
+        robotModel.setFloatX((float) newPosition[0]);
+        robotModel.setFloatY((float) newPosition[1]);
+        Log.i("fix_delta", "5.New float position x: " + newPosition[0] + " Y: " + newPosition[1]);
 
         drawLine(oldPosition[0], oldPosition[1],
                 robotModel.getFloatX(), robotModel.getFloatY(),
@@ -69,9 +70,22 @@ public class MapModel {
         float[] leftWall = calculateWallPosition(
                 robotModel.getFloatX(), robotModel.getFloatY(),
                 angle, robotModel.getSonicValue().getLeft());
-
+        // Draw space
         drawLine(robotModel.getFloatX(), robotModel.getFloatY(),
                 leftWall[0], leftWall[1],2);
+        // Wall
+        float[] leftObstacle = calculateWallPosition(
+                leftWall[0], leftWall[1],
+                angle, 10
+        );
+        // Wall + 100cm
+        float[] leftObstacle2 = calculateWallPosition(
+                leftObstacle[0], leftObstacle[1],
+                angle, 100
+        );
+        // Empty Wall + 100cm
+        drawLine(leftObstacle[0], leftObstacle[1],
+                leftObstacle2[0], leftObstacle2[1], 0);
 
         //sonic right
         float rightAngle = (robotModel.getAngle() + 90) % 360;
@@ -80,6 +94,19 @@ public class MapModel {
                 rightAngle, robotModel.getSonicValue().getRight());
         drawLine(robotModel.getFloatX(), robotModel.getFloatY(),
                 rightWall[0], rightWall[1], 2);
+        // Wall
+        float[] rightObstacle = calculateWallPosition(
+                rightWall[0], rightWall[1],
+                rightAngle, 10
+        );
+        // Wall + 100cm
+        float[] rightObstacle2 = calculateWallPosition(
+                rightObstacle[0], rightObstacle[1],
+                rightAngle, 100
+        );
+        // Empty Wall + 100cm
+        drawLine(rightObstacle[0], rightObstacle[1],
+                rightObstacle2[0], rightObstacle2[1], 0);
 
         // sonic front
         float[] frontWall = calculateWallPosition(
@@ -88,6 +115,19 @@ public class MapModel {
         drawLine(
                 robotModel.getFloatX(), robotModel.getFloatY(),
                 frontWall[0], frontWall[1], 2);
+        // Wall
+        float[] frontObstacle = calculateWallPosition(
+                frontWall[0], frontWall[1],
+                robotModel.getAngle(), 10
+        );
+        // Wall + 100cm
+        float[] frontObstacle2 = calculateWallPosition(
+                frontObstacle[0], frontObstacle[1],
+                robotModel.getAngle(), 100
+        );
+        // Empty Wall + 100cm
+        drawLine(frontObstacle[0], frontObstacle[1],
+                frontObstacle2[0], frontObstacle2[1], 0);
         // call invalidate to update map view
     }
 
@@ -107,37 +147,41 @@ public class MapModel {
     }
 
     // calculate new position after move distanceCm cm to an angle
-    private float[] calculateNewPosition(
+    private double[] calculateNewPosition(
             float oldX, float oldY,
             float angleDeg,
             float distanceCm,
             String action) {
 
         // Convert angle to radians
-        float angleRad = (float) Math.toRadians(angleDeg);
+        double angleRad = Math.toRadians(angleDeg);
 
         // Calculate delta in cm
-        float deltaCmX = (float) (distanceCm * Math.sin(angleRad));
-        float deltaCmY = (float) (distanceCm * Math.cos(angleRad));
+        double deltaCmX = (distanceCm * Math.sin(angleRad));
+        double deltaCmY =  (distanceCm * Math.cos(angleRad));
 
         // Convert cm to grid index delta
-        float deltaCellX =  (deltaCmX / MapModel.squareSizeCm); // 10cm per cell
-        float deltaCellY = (deltaCmY / MapModel.squareSizeCm);
+        double deltaCellX =  (deltaCmX / MapModel.squareSizeCm); // 10cm per cell
+        double deltaCellY = (deltaCmY / MapModel.squareSizeCm);
 
+        Log.d("fix_delta", "3.deltaCmX: " + deltaCmX + " deltaCmY: " + deltaCmY);
+        Log.d("fix_delta", "4.deltaCellX: " + deltaCellX + " deltaCellY: " + deltaCellY);
 
         // Y axis usually increases downward in arrays, so invert dy if needed
-        float newX = 0, newY = 0;
+        double newX = 0, newY = 0;
         if(action.equals("F")){
             newX = oldX + deltaCellX;
             newY = oldY - deltaCellY; // subtract if y=0 is top of map
-            return new float[]{newX, newY};
+            Log.d("fix_delta", "4.1.newX: " + newX + " newY: " + newY);
+            return new double[]{newX, newY};
         }else if(action.equals("B")){
             newX = oldX - deltaCellX;
             newY = oldY + deltaCellY; // subtract if y=0 is top of map
-            return new float[]{newX, newY};
+            Log.d("fix_delta", "4.1.newX: " + newX + " newY: " + newY);
+            return new double[]{newX, newY};
         }else{
             Log.d("WHEN_ROLL", "action: " + action);
-            return new float[]{oldX, oldY};
+            return new double[]{oldX, oldY};
         }
     }
 
@@ -181,11 +225,25 @@ public class MapModel {
         int sy = y0 < y1 ? 1 : -1;
         int err = dx - dy;
 
+
+
         while (true) {
             if (x0 >= 0 && y0 >= 0 && x0 < map.length && y0 < map[0].length) {
+
                 if(linePaint == 1){
                     map[x0][y0] = linePaint;
                     Log.e("VALIDATE_FLOAT", "x0: " + x0 + " y0: " + y0 + " line: " + linePaint);
+                }else if(linePaint == 2){
+                    if(map[x0][y0] != 1){
+                        if(map[x0][y0] >= 2.0F && map[x0][y0] < 3.0F){
+                            map[x0][y0] += 0.2F;
+                            if(map[x0][y0] > 3.0F) map[x0][y0] = 3.0F;
+                        }else if(map[x0][y0] == 0.F ){
+                            map[x0][y0] = 2.0F;
+                        }
+
+//                        Log.e("VALIDATE_FLOAT", "x0: " + x0 + " y0: " + y0 + " line: " + linePaint);
+                    }
                 }else{
                     if(map[x0][y0] != 1){
                         map[x0][y0] = linePaint;
@@ -204,6 +262,17 @@ public class MapModel {
             if (e2 < dx) {
                 err += dx;
                 y0 += sy;
+            }
+        }
+        // Obstacle
+        if(linePaint == 2){
+            if(map[x1][y1] != 1){
+                if(map[x1][y1] >= 4.0f && map[x1][y1] < 5.0f){
+                    map[x1][y1] += 0.2F;
+                    if(map[x1][y1] > 5.F) map[x1][y1] = 5.F;
+                }else if(map[x1][y1] == 0.F || (map[x1][y1] >= 2.F && map[x1][y1] <=3)){
+                    map[x1][y1] = 4.F;
+                }
             }
         }
     }
@@ -225,11 +294,11 @@ public class MapModel {
         return squareSize;
     }
 
-    public int[][] getMap() {
+    public float[][] getMap() {
         return map;
     }
 
-    public void setMap(int[][] map) {
+    public void setMap(float[][] map) {
         this.map = map;
     }
 

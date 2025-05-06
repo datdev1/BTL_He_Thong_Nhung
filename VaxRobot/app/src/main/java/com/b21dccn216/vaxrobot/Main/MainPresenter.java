@@ -229,13 +229,15 @@ public class MainPresenter implements MainContract.Presenter {
     // TODO:: get Heading.
     private void processBluetoothMessage(String fullMessage) {
         RobotModel robotModel = new RobotModel();
+        Log.d("fullMess", fullMessage);
         String[] lines = fullMessage.strip().split("\\R"); // split by line
         // process distance, yAngle
         try{
             String[] speedParts = lines[0].split("; ");
             double speed = Double.parseDouble(speedParts[0].split(": ")[1]);
             receivedDistance = (float) Double.parseDouble(speedParts[1].split(": ")[1]);
-
+            String action = speedParts[2].split(":")[1];
+            robotModel.setAction(action);
             String[] yprParts = lines[5]
                     .replace("YPR:", "")
                     .replace("[", "")
@@ -251,21 +253,20 @@ public class MainPresenter implements MainContract.Presenter {
                 float delta =  (receivedDistance - traveledDistance);
 //                if(delta >= squareSizeCm)
 //                {
-                    Log.d("WHEN_ROLL", "receivedDistance: " + receivedDistance);
 
                     // TODO:: MERGE INTO setRobotModel only
 //                                robotModelClone.setDistance(delta);
 //                    view.moveRobotCar(delta, commandSend);
                     robotModel.setDistanceCm(delta);
-                    robotModel.setAction(commandSend);
-                    traveledDistance += delta;
+//                    Log.d("fix_delta", "delta: " + delta);
+                    traveledDistance = receivedDistance;
 //                }
 
             }else{
                 traveledDistance = receivedDistance;
             }
         }catch (Exception e){
-            Log.e("MapView", "parseBluetoothMessage: " + e + e.getMessage());
+            Log.e("fix_delta", "parseBluetoothMessage: " + e + e.getMessage());
         }
 
         // 3. Sonic
@@ -286,15 +287,21 @@ public class MainPresenter implements MainContract.Presenter {
 //            view.processSonicValue(sonicValue);
             robotModel.setSonicValue(sonicValue);
         }catch (Exception e){
-            Log.e("MapView", "parseBluetoothMessage: " + e);
+            Log.e("fix_delta", "parseBluetoothMessage: " + e);
         }
 
 
         // 4. Accelerometer
-//        String[] accelParts = lines[3].replaceAll("[^X0-9Y:Z\\-; ]", "").split("[; ]+");
-//        int accelX = Integer.parseInt(accelParts[1]);
-//        int accelY = Integer.parseInt(accelParts[3]);
-//        int accelZ = Integer.parseInt(accelParts[5]);
+        try{
+            String[] accelParts = lines[3].replaceAll("[^X0-9Y:Z\\-; ]", "").split("[; ]+");
+            int accelX = Integer.parseInt(accelParts[2]);
+            int accelY = Integer.parseInt(accelParts[4]);
+            int accelZ = Integer.parseInt(accelParts[6]);
+            Log.i("MapView", "Accel X/Y/Z = " + accelY );
+        }catch(Exception e){
+            Log.e("fix_delta", "processBluetoothMessage: " + e);
+        }
+
 
         // 5. Gyroscope
 //        String[] gyroParts = lines[4].replaceAll("[^X0-9Y:Z\\-; ]", "").split("[; ]+");
