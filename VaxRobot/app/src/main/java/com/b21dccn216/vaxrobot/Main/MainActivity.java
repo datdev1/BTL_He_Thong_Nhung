@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                     WindowManager.LayoutParams.FLAG_FULLSCREEN);
         }
         // Khởi tạo presenter
-        presenter.setView(this, binding.mapView.getRobotModel());
+        presenter.setView(this);
 
         // Request permissions
         requestBluetoothPermissions();
@@ -127,7 +127,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                 }, REQUEST_BLUETOOTH_PERMISSIONS);
             }
         }else{
-            // dialog not support
+            // show dialog bluetooth not support
         }
     }
 
@@ -147,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     @SuppressLint("ClickableViewAccessibility")
     private void setUpButton(){
         binding.center.setOnClickListener(v -> {
-            binding.mapView.centerOnPoint();
+            binding.mapView.centerOnRobotPosition();
         });
 
         binding.select.setOnClickListener(v -> {
@@ -177,12 +177,14 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                         // Finger touched the button
 //                        presenter.setCommandSend("F");
                         presenter.setUp(true);
+                        binding.mapView.centerOnRobotPosition();
                         setOnTouchBackground(binding.up);
                         return true;
                     case MotionEvent.ACTION_UP:
                         // Finger lifted off the button
 //                        presenter.setCommandSend("S");
                         presenter.setUp(false);
+                        binding.mapView.centerOnRobotPosition();
                         setOnNotTouchBackground(binding.up);
                         return true;
                 }
@@ -197,12 +199,14 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                         // Finger touched the button
 //                        presenter.setCommandSend("B");
                         presenter.setDown(true);
+                        binding.mapView.centerOnRobotPosition();
                         setOnTouchBackground(binding.down);
                         return true;
                     case MotionEvent.ACTION_UP:
                         // Finger lifted off the button
 //                        presenter.setCommandSend("S");
                         presenter.setDown(false);
+                        binding.mapView.centerOnRobotPosition();
                         setOnNotTouchBackground(binding.down);
                         return true;
                 }
@@ -218,12 +222,14 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                         // Finger touched the button
 //                        presenter.setCommandSend("L");
                         presenter.setLeft(true);
+                        binding.mapView.centerOnRobotPosition();
                         setOnTouchBackground(binding.left);
                         return true;
                     case MotionEvent.ACTION_UP:
                         // Finger lifted off the button
 //                        presenter.setCommandSend("S");
                         presenter.setLeft(false);
+                        binding.mapView.centerOnRobotPosition();
                         setOnNotTouchBackground(binding.left);
                         return true;
                 }
@@ -239,12 +245,14 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                         // Finger touched the button
 //                        presenter.setCommandSend("R");
                         presenter.setRight(true);
+                        binding.mapView.centerOnRobotPosition();
                         setOnTouchBackground(binding.right);
                         return true;
                     case MotionEvent.ACTION_UP:
                         // Finger lifted off the button
 //                        presenter.setCommandSend("S");
                         presenter.setRight(false);
+                        binding.mapView.centerOnRobotPosition();
                         setOnNotTouchBackground(binding.right);
                         return true;
                 }
@@ -252,62 +260,38 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             }
         });
 
-//        binding.right.setOnClickListener(v -> {
-//            setRobotAngle(45);
-//        });
-//        binding.left.setOnClickListener(v -> {
-//            setRobotAngle(-45);
-//        });
-
-
         binding.delete.setOnClickListener(v -> {
             presenter.sendCommand("D");
         });
 
-
-
         binding.seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-
-
                 String res = "Speed " + String.valueOf(i);
                 presenter.sendCommand(res);
 
                 binding.seekbarValue.setText(i + "");
             }
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
 
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
+            public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
         binding.seekbarDelta.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-
-
                 String res = "Delta_speed " + String.valueOf(i-50);
                 presenter.sendCommand(res);
-
                 binding.seekbarDeltaValue.setText("" +  String.valueOf(i-50));
             }
 
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
+            public void onStartTrackingTouch(SeekBar seekBar) {}
 
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
+            public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
         binding.status.setOnClickListener(v -> {
@@ -337,10 +321,9 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
 
 
 
-
-
 //
 //    Implementation of View
+//    Include show message, show error, show alert dialog
 //
     @Override
     public void showConnectionSuccess(String device) {
@@ -411,10 +394,25 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     //      Interact with Robot model / mapview
     //
 
-    public void setRawRobotModel(RobotModel r){
-        binding.mapView.setRawRobotModel(r);
+//    public void setRawRobotModel(RobotModel r){
+//        binding.mapView.setRawRobotModel(r);
+//    }
+
+    public void moveRobotCar(float distanceCm,  String action){
+        //binding.mapView.moveRobotCar(distanceCm, action);
     }
 
+    public void setRobotAngle(float angle){
+        //binding.mapView.setRobotAngle(angle);
+    }
+
+    public void processSonicValue(SonicValue sonicValue){
+        //binding.mapView.processSonicValue(sonicValue);
+    }
+
+    public void updateRobotModel(RobotModel r){
+        binding.mapView.updateRobotModel(r);
+    }
 
 
     public void resetMap(){

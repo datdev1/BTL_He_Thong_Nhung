@@ -9,59 +9,24 @@ public class RobotModel {
     private float floatX;
     private float floatY;
 
-
-    private int x;
-    private int y;
-    private float distance;
     private float angle;
 
     private SonicValue sonicValue;
 
     private String action = "F";
 
-    private int squareSize;
+    private float squareSize;
+    private float distanceCm;
 
-    public RobotModel(int x, int y, int squareSize) {
-        this.x = x;
-        this.y = y;
-        this.floatX = x;
-        this.floatY = y;
-        this.squareSize = squareSize;
+    public RobotModel() {
     }
 
-    public RobotModel(int x, int y, int distance, float angle, int squareSize) {
-        this.x = x;
-        this.y = y;
-        this.floatX = (float) x;
-        this.floatY = (float) y;
-        this.distance = distance;
+    public RobotModel(float x, float y, float angle, float squareSize) {
+        this.floatX =  x;
+        this.floatY =  y;
         this.angle = angle;
         this.squareSize = squareSize;
         this.sonicValue = new SonicValue(0,0,0);
-    }
-
-    public int getX() {
-        return x;
-    }
-
-    public void setX(int x) {
-        this.x = x;
-    }
-
-    public int getY() {
-        return y;
-    }
-
-    public void setY(int y) {
-        this.y = y;
-    }
-
-    public float getDistance() {
-        return distance;
-    }
-
-    public void setDistance(float distance) {
-        this.distance = distance;
     }
 
     public float getAngle() {
@@ -72,12 +37,12 @@ public class RobotModel {
         this.angle = angle;
     }
 
-    public int getXAxis(){
-        return x*squareSize;
+    public float getXAxis(){
+        return  (floatX*squareSize);
     }
 
-    public int getYAxis(){
-        return y*squareSize;
+    public float getYAxis(){
+        return  (floatY*squareSize);
     }
 
 
@@ -89,11 +54,11 @@ public class RobotModel {
         this.action = action;
     }
 
-    public int getSquareSize() {
+    public float getSquareSize() {
         return squareSize;
     }
 
-    public void setSquareSize(int squareSize) {
+    public void setSquareSize(float squareSize) {
         this.squareSize = squareSize;
     }
 
@@ -119,5 +84,13 @@ public class RobotModel {
 
     public void setFloatY(float floatY) {
         this.floatY = floatY;
+    }
+
+    public float getDistanceCm() {
+        return distanceCm;
+    }
+
+    public void setDistanceCm(float distanceCm) {
+        this.distanceCm = distanceCm;
     }
 }

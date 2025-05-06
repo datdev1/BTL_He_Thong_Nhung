@@ -1,6 +1,6 @@
 package com.b21dccn216.vaxrobot.Main;
 
-import static com.b21dccn216.vaxrobot.View.MapView.squareSizeCm;
+import static com.b21dccn216.vaxrobot.Model.MapModel.squareSizeCm;
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
@@ -36,12 +36,7 @@ public class MainPresenter implements MainContract.Presenter {
     private float receivedDistance = 0;
     private float traveledDistance = 0;
 
-
-    private int compassAngle = 0;
     private boolean isRoll = false;
-
-    private RobotModel robotModelClone;
-
 
     private BluetoothAdapter bluetoothAdapter;
 
@@ -68,8 +63,7 @@ public class MainPresenter implements MainContract.Presenter {
     public MainPresenter() {
     }
 
-    public void setView(MainActivity view, RobotModel robotModel){
-        this.robotModelClone = robotModel;
+    public void setView(MainActivity view){
         this.view = view;
         init();
         handler = new Handler(Looper.getMainLooper());
@@ -152,10 +146,8 @@ public class MainPresenter implements MainContract.Presenter {
                     commandSend = "S";
                 }
 
-                robotModelClone.setAction(commandSend);
-
                 sendCommand(commandSend);
-                // TODO: Mergin into set robotModel only
+
                 loopHandler();
             }
         }, 5);
@@ -191,40 +183,10 @@ public class MainPresenter implements MainContract.Presenter {
                     public void onMessageReceived(String message) {
                         view.showMessage(message);
                         // parse message
-                        parseBluetoothMessage(message);
-                        // Map yAngle into 0-360
-//                        int mapped = (int) yAngle;
-//                        if(mapped < 0) mapped = 360 + mapped;
-                        boolean updated = false;
-                        // TODO:: MERGE INTO setRobotModel only
-//                        view.setRobotAngle((int) robotModelClone.getAngle());
-//                        view.setRobotSonics(son)
+                        processBluetoothMessage(message);
+                        // update sonic
 
-                        if(!isRoll){
-                            float delta =  (receivedDistance - traveledDistance);
-                            if(delta >= squareSizeCm)
-                            {
-                                Log.d("WHEN_ROLL", "receivedDistance: " + receivedDistance);
-//                            Log.d("MapView", "1delta: " + delta);
-//                            Log.d("MapView", "2travelDistance: " + travelDistance);
 
-//                            float intDelta = (delta - delta % squareSizeCm);
-                                // TODO:: MERGE INTO setRobotModel only
-                                robotModelClone.setDistance(delta);
-                                view.setRawRobotModel(robotModelClone);
-                                updated = true;
-//                            view.updateRobotPosition(intDelta);
-                                traveledDistance += (float)(delta);
-//                            Log.d("MapView", "3intDelta: " + intDelta);
-//                            Log.d("MapView", "4traveledDistance: " + traveledDistance);
-                            }
-
-                        }else{
-                            traveledDistance = receivedDistance;
-                        }
-                        if(!updated){
-                            view.setRawRobotModel(robotModelClone);
-                        }
                     }
                     @Override
                     public void onError(String message) {
@@ -257,32 +219,46 @@ public class MainPresenter implements MainContract.Presenter {
     }
 
     // TODO:: get Heading.
-    void parseBluetoothMessage(String fullMessage) {
-
+    private void processBluetoothMessage(String fullMessage) {
+        RobotModel robotModel = new RobotModel();
         String[] lines = fullMessage.strip().split("\\R"); // split by line
-//        Log.e("MapView", "lines " + lines.length + " message " + fullMessage);
-
-        // 1. Speed and Travel Distance
+        // process distance, yAngle
         try{
             String[] speedParts = lines[0].split("; ");
             double speed = Double.parseDouble(speedParts[0].split(": ")[1]);
             receivedDistance = (float) Double.parseDouble(speedParts[1].split(": ")[1]);
-//            Log.i("MapView", "Speed = " + speed + ", Travel Distance = " + travelDis);
+
+            String[] yprParts = lines[5]
+                    .replace("YPR:", "")
+                    .replace("[", "")
+                    .replace("]", "")
+                    .split(";");
+            float tempYAngle = Float.parseFloat(yprParts[0].replace("Y:", ""));
+            //double pitch = Double.parseDouble(yprParts[1].replace("P:", ""));
+            //double roll = Double.parseDouble(yprParts[2].replace("R:", ""));
+            // Map yAngle into 0-360 and set to robotModelClone
+            processDistance(mapYAngleInto360(tempYAngle));
+            robotModel.setAngle(mapYAngleInto360(tempYAngle));
+            if(!isRoll){
+                float delta =  (receivedDistance - traveledDistance);
+//                if(delta >= squareSizeCm)
+//                {
+                    Log.d("WHEN_ROLL", "receivedDistance: " + receivedDistance);
+
+                    // TODO:: MERGE INTO setRobotModel only
+//                                robotModelClone.setDistance(delta);
+//                    view.moveRobotCar(delta, commandSend);
+                    robotModel.setDistanceCm(delta);
+                    robotModel.setAction(commandSend);
+                    traveledDistance += delta;
+//                }
+
+            }else{
+                traveledDistance = receivedDistance;
+            }
         }catch (Exception e){
-            Log.e("MapView", "parseBluetoothMessage: " + e);
+            Log.e("MapView", "parseBluetoothMessage: " + e + e.getMessage());
         }
-
-
-        // 2. Motor Speed
-//        try{
-//            String[] motorParts = lines[1].split("; ");
-//            int speedMotor = Integer.parseInt(motorParts[0].split(": ")[1]);
-//            int deltaSpeed = Integer.parseInt(motorParts[1].split(": ")[1]);
-//            double vong = Double.parseDouble(motorParts[2].split(": ")[1]);
-//            Log.i("MapView", "Motor = " + speedMotor + ", Delta = " + deltaSpeed + ", Vong = " + vong);
-//        }catch (Exception e){
-//            Log.e("MapView", "parseBluetoothMessage: " + e);
-//        }
 
         // 3. Sonic
         try{
@@ -298,8 +274,9 @@ public class MainPresenter implements MainContract.Presenter {
                     sonicR,
                     sonicF
             );
-//            Log.i("MapView", "Sonic L/R/F = " + sonicL + "/" + sonicR + "/" + sonicF);
-            robotModelClone.setSonicValue(sonicValue);
+            //Log.i("MapView", "Sonic L/R/F = " + sonicL + "/" + sonicR + "/" + sonicF);
+//            view.processSonicValue(sonicValue);
+            robotModel.setSonicValue(sonicValue);
         }catch (Exception e){
             Log.e("MapView", "parseBluetoothMessage: " + e);
         }
@@ -318,49 +295,18 @@ public class MainPresenter implements MainContract.Presenter {
 //        int gyroZ = Integer.parseInt(gyroParts[5]);
 
         // 6. Yaw-Pitch-Roll
-        try{
-            String[] yprParts = lines[5]
-                    .replace("YPR:", "")
-                    .replace("[", "")
-                    .replace("]", "")
-                    .split(";");
-            float tempYAngle = Float.parseFloat(yprParts[0].replace("Y:", ""));
-            //double pitch = Double.parseDouble(yprParts[1].replace("P:", ""));
-            //double roll = Double.parseDouble(yprParts[2].replace("R:", ""));
-            // Map yAngle into 0-360 and set to robotModelClone
-            robotModelClone.setAngle(mapYAngleInto360(tempYAngle));
-//            Log.i("MapView", "YPR = Yaw: " + yAngle + ", Pitch: " + pitch + ", Roll: " + roll);
 
-        }catch (Exception e){
-            Log.e("MapView", "parseBluetoothMessage: " + e + e.getMessage());
-        }
-
-        // 7. Temp & Pressure
-//        String[] tempParts = lines[6].split("; ");
-//        double temp = Double.parseDouble(tempParts[0].split(": ")[1].replace("'C", ""));
-//        int pressure = Integer.parseInt(tempParts[1].split(": ")[1].replace("Pa", ""));
-
-        // 8. Compass
-        try{
-            String[] compassParts = lines[7].replaceAll("[^0-9\\-; ]", "").split("; ");
-//            Log.d("MapView", compassParts[3]);
-//            int compassX = Integer.parseInt(compassParts[0].split(": ")[1]);
-//            int compassY = Integer.parseInt(compassParts[1].split(": ")[1]);
-//            int compassZ = Integer.parseInt(compassParts[2].split(": ")[1]);
-            compassAngle = Integer.parseInt(compassParts[3].trim());
-//            Log.i("MapView", "Compass X/Y/Z = " + compassAngle + "/" + compassAngle + "/" + compassAngle + ", Heading = " + compassAngle);
-
-        }catch (Exception e){
-            Log.e("MapView", "parseBluetoothMessage: " + e.getStackTrace()+ " " + e.getMessage());
-        }
 
 //        Log.i("MapView", "Sonic L/R/F = " + sonicL + "/" + sonicR + "/" + sonicF);
 //        Log.i("MapView", "Accel X/Y/Z = " + accelX + "/" + accelY + "/" + accelZ);
 //        Log.i("MapView", "Gyro X/Y/Z = " + gyroX + "/" + gyroY + "/" + gyroZ);
 //        Log.i("MapView", "Temp = " + temp + "°C, Pressure = " + pressure + " Pa");
+        view.updateRobotModel(robotModel);
     }
 
+    private void processDistance(float angle){
 
+    }
 
     public void setIsShowSeekBarGroup(boolean isShow){
         view.setVisibleSeekBarGroup(isShow);
