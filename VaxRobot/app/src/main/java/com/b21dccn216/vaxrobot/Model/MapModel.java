@@ -69,77 +69,47 @@ public class MapModel {
         // sonic left
         if(robotModel.getSonicValue().getLeft() != -1){
             float angle = (robotModel.getAngle() + 270) % 360;
-            float[] leftWall = calculateWallPosition(
-                    robotModel.getFloatX(), robotModel.getFloatY(),
+            drawSpace(robotModel.getFloatX(), robotModel.getFloatY(),
                     angle, robotModel.getSonicValue().getLeft());
-            // Draw space
-            drawLine(robotModel.getFloatX(), robotModel.getFloatY(),
-                    leftWall[0], leftWall[1],2);
-
-            // Wall
-            float[] leftObstacle = calculateWallPosition(
-                    leftWall[0], leftWall[1],
-                    angle, squareSizeCm
-            );
-            // Wall + 100cm
-            float[] leftObstacle2 = calculateWallPosition(
-                    leftObstacle[0], leftObstacle[1],
-                    angle, 100
-            );
-            // Empty Wall + 100cm
-            drawLine(leftObstacle2[0], leftObstacle2[1],
-                    leftObstacle[0], leftObstacle[1], 0);
         }
 
         //sonic right
         if(robotModel.getSonicValue().getRight() != -1){
-            float rightAngle = (robotModel.getAngle() + 90) % 360;
-            float[] rightWall = calculateWallPosition(
-                    robotModel.getFloatX(), robotModel.getFloatY(),
-                    rightAngle, robotModel.getSonicValue().getRight());
-
-            drawLine(robotModel.getFloatX(), robotModel.getFloatY(),
-                    rightWall[0], rightWall[1], 2);
-            // Wall
-            float[] rightObstacle = calculateWallPosition(
-                    rightWall[0], rightWall[1],
-                    rightAngle, squareSizeCm
-            );
-            // Wall + 100cm
-            float[] rightObstacle2 = calculateWallPosition(
-                    rightObstacle[0], rightObstacle[1],
-                    rightAngle, 100
-            );
-            // Empty Wall + 100cm
-            drawLine(rightObstacle[0], rightObstacle[1],
-                    rightObstacle2[0], rightObstacle2[1], 0);
+            float angle = (robotModel.getAngle() + 90) % 360;
+            drawSpace(robotModel.getFloatX(), robotModel.getFloatY(),
+                    angle, robotModel.getSonicValue().getRight());
         }
 
         // sonic front
         if(robotModel.getSonicValue().getFront() != -1){
-            float[] frontWall = calculateWallPosition(
-                    robotModel.getFloatX(),  robotModel.getFloatY(),
+            drawSpace(robotModel.getFloatX(), robotModel.getFloatY(),
                     robotModel.getAngle(), robotModel.getSonicValue().getFront());
-            drawLine(
-                    robotModel.getFloatX(), robotModel.getFloatY(),
-                    frontWall[0], frontWall[1], 2);
-            // Wall
-            float[] frontObstacle = calculateWallPosition(
-                    frontWall[0], frontWall[1],
-                    robotModel.getAngle(), squareSizeCm
-            );
-            // Wall + 100cm
-            float[] frontObstacle2 = calculateWallPosition(
-                    frontObstacle[0], frontObstacle[1],
-                    robotModel.getAngle(), 100
-            );
-            // Empty Wall + 100cm
-            drawLine(frontObstacle[0], frontObstacle[1],
-                    frontObstacle2[0], frontObstacle2[1], 0);
         }
         // call invalidate to update map view
     }
 
+    private void drawSpace(float x, float y,float angle, float distanceCm){
+        float[] wall = calculateWallPosition(
+                x, y,
+                angle, distanceCm);
+        // Draw space
+        drawLine(x, y,
+                wall[0], wall[1],2);
+
+        // Wall
+        float[] obstacle = calculateWallPosition(
+                wall[0], wall[1],
+                angle, squareSizeCm
+        );
+        // Wall + 100cm
+        float[] obstacleAddHundred = calculateWallPosition(
+                obstacle[0], obstacle[1],
+                angle, 100
+        );
+        // Empty Wall + 100cm
+        drawLine(obstacleAddHundred[0], obstacleAddHundred[1],
+                obstacle[0], obstacle[1], 0);
+    }
 
 
     public void resetMap(){
