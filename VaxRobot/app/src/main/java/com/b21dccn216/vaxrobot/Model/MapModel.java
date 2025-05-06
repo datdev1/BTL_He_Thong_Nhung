@@ -11,6 +11,7 @@ public class MapModel {
     // Size of each grid box in pixel
     public static final int squareSize = (int) mapShapeSize/numberGridBox;
 
+    private float deltaPaint = 0.25F;
     // Initiate map
     private float[][] map = new float[numberGridBox][numberGridBox];
     // Each grid box size is 10 cm in real life
@@ -66,68 +67,76 @@ public class MapModel {
         robotModel.setSonicValue(sonicValue);
         // TODO: process sonic value
         // sonic left
-        float angle = (robotModel.getAngle() + 270) % 360;
-        float[] leftWall = calculateWallPosition(
-                robotModel.getFloatX(), robotModel.getFloatY(),
-                angle, robotModel.getSonicValue().getLeft());
-        // Draw space
-        drawLine(robotModel.getFloatX(), robotModel.getFloatY(),
-                leftWall[0], leftWall[1],2);
-        // Wall
-        float[] leftObstacle = calculateWallPosition(
-                leftWall[0], leftWall[1],
-                angle, 10
-        );
-        // Wall + 100cm
-        float[] leftObstacle2 = calculateWallPosition(
-                leftObstacle[0], leftObstacle[1],
-                angle, 100
-        );
-        // Empty Wall + 100cm
-        drawLine(leftObstacle[0], leftObstacle[1],
-                leftObstacle2[0], leftObstacle2[1], 0);
+        if(robotModel.getSonicValue().getLeft() != -1){
+            float angle = (robotModel.getAngle() + 270) % 360;
+            float[] leftWall = calculateWallPosition(
+                    robotModel.getFloatX(), robotModel.getFloatY(),
+                    angle, robotModel.getSonicValue().getLeft());
+            // Draw space
+            drawLine(robotModel.getFloatX(), robotModel.getFloatY(),
+                    leftWall[0], leftWall[1],2);
+
+            // Wall
+            float[] leftObstacle = calculateWallPosition(
+                    leftWall[0], leftWall[1],
+                    angle, squareSizeCm
+            );
+            // Wall + 100cm
+            float[] leftObstacle2 = calculateWallPosition(
+                    leftObstacle[0], leftObstacle[1],
+                    angle, 100
+            );
+            // Empty Wall + 100cm
+            drawLine(leftObstacle2[0], leftObstacle2[1],
+                    leftObstacle[0], leftObstacle[1], 0);
+        }
 
         //sonic right
-        float rightAngle = (robotModel.getAngle() + 90) % 360;
-        float[] rightWall = calculateWallPosition(
-                robotModel.getFloatX(), robotModel.getFloatY(),
-                rightAngle, robotModel.getSonicValue().getRight());
-        drawLine(robotModel.getFloatX(), robotModel.getFloatY(),
-                rightWall[0], rightWall[1], 2);
-        // Wall
-        float[] rightObstacle = calculateWallPosition(
-                rightWall[0], rightWall[1],
-                rightAngle, 10
-        );
-        // Wall + 100cm
-        float[] rightObstacle2 = calculateWallPosition(
-                rightObstacle[0], rightObstacle[1],
-                rightAngle, 100
-        );
-        // Empty Wall + 100cm
-        drawLine(rightObstacle[0], rightObstacle[1],
-                rightObstacle2[0], rightObstacle2[1], 0);
+        if(robotModel.getSonicValue().getRight() != -1){
+            float rightAngle = (robotModel.getAngle() + 90) % 360;
+            float[] rightWall = calculateWallPosition(
+                    robotModel.getFloatX(), robotModel.getFloatY(),
+                    rightAngle, robotModel.getSonicValue().getRight());
+
+            drawLine(robotModel.getFloatX(), robotModel.getFloatY(),
+                    rightWall[0], rightWall[1], 2);
+            // Wall
+            float[] rightObstacle = calculateWallPosition(
+                    rightWall[0], rightWall[1],
+                    rightAngle, squareSizeCm
+            );
+            // Wall + 100cm
+            float[] rightObstacle2 = calculateWallPosition(
+                    rightObstacle[0], rightObstacle[1],
+                    rightAngle, 100
+            );
+            // Empty Wall + 100cm
+            drawLine(rightObstacle[0], rightObstacle[1],
+                    rightObstacle2[0], rightObstacle2[1], 0);
+        }
 
         // sonic front
-        float[] frontWall = calculateWallPosition(
-                 robotModel.getFloatX(),  robotModel.getFloatY(),
-                robotModel.getAngle(), robotModel.getSonicValue().getFront());
-        drawLine(
-                robotModel.getFloatX(), robotModel.getFloatY(),
-                frontWall[0], frontWall[1], 2);
-        // Wall
-        float[] frontObstacle = calculateWallPosition(
-                frontWall[0], frontWall[1],
-                robotModel.getAngle(), 10
-        );
-        // Wall + 100cm
-        float[] frontObstacle2 = calculateWallPosition(
-                frontObstacle[0], frontObstacle[1],
-                robotModel.getAngle(), 100
-        );
-        // Empty Wall + 100cm
-        drawLine(frontObstacle[0], frontObstacle[1],
-                frontObstacle2[0], frontObstacle2[1], 0);
+        if(robotModel.getSonicValue().getFront() != -1){
+            float[] frontWall = calculateWallPosition(
+                    robotModel.getFloatX(),  robotModel.getFloatY(),
+                    robotModel.getAngle(), robotModel.getSonicValue().getFront());
+            drawLine(
+                    robotModel.getFloatX(), robotModel.getFloatY(),
+                    frontWall[0], frontWall[1], 2);
+            // Wall
+            float[] frontObstacle = calculateWallPosition(
+                    frontWall[0], frontWall[1],
+                    robotModel.getAngle(), squareSizeCm
+            );
+            // Wall + 100cm
+            float[] frontObstacle2 = calculateWallPosition(
+                    frontObstacle[0], frontObstacle[1],
+                    robotModel.getAngle(), 100
+            );
+            // Empty Wall + 100cm
+            drawLine(frontObstacle[0], frontObstacle[1],
+                    frontObstacle2[0], frontObstacle2[1], 0);
+        }
         // call invalidate to update map view
     }
 
@@ -236,15 +245,23 @@ public class MapModel {
                 }else if(linePaint == 2){
                     if(map[x0][y0] != 1){
                         if(map[x0][y0] >= 2.0F && map[x0][y0] < 3.0F){
-                            map[x0][y0] += 0.2F;
+                            map[x0][y0] += deltaPaint;
                             if(map[x0][y0] > 3.0F) map[x0][y0] = 3.0F;
-                        }else if(map[x0][y0] == 0.F ){
-                            map[x0][y0] = 2.0F;
+                        }else if(map[x0][y0] != 3.F ){
+                            map[x0][y0] = 2.1F;
                         }
-
-//                        Log.e("VALIDATE_FLOAT", "x0: " + x0 + " y0: " + y0 + " line: " + linePaint);
                     }
-                }else{
+                }else if(linePaint == 0){
+                  if(map[x0][y0] != 1){
+                      if(map[x0][y0] > 4.1F && map[x0][y0] <= 5.0F) {
+                          map[x0][y0] -= deltaPaint;
+                      }else if(map[x0][y0] > 2.1F && map[x0][y0] <= 3.F){
+                          map[x0][y0] -= deltaPaint;
+                      }else{
+                          map[x0][y0] = 0;
+                      }
+                  }
+                } else{
                     if(map[x0][y0] != 1){
                         map[x0][y0] = linePaint;
 //                        Log.e("VALIDATE_FLOAT", "x0: " + x0 + " y0: " + y0 + " line: " + linePaint);
@@ -262,17 +279,6 @@ public class MapModel {
             if (e2 < dx) {
                 err += dx;
                 y0 += sy;
-            }
-        }
-        // Obstacle
-        if(linePaint == 2){
-            if(map[x1][y1] != 1){
-                if(map[x1][y1] >= 4.0f && map[x1][y1] < 5.0f){
-                    map[x1][y1] += 0.2F;
-                    if(map[x1][y1] > 5.F) map[x1][y1] = 5.F;
-                }else if(map[x1][y1] == 0.F || (map[x1][y1] >= 2.F && map[x1][y1] <=3)){
-                    map[x1][y1] = 4.F;
-                }
             }
         }
     }

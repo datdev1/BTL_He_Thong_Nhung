@@ -275,9 +275,9 @@ public class MainPresenter implements MainContract.Presenter {
             int sonicL = Integer.parseInt(sonicParts[0]);
             int sonicR = Integer.parseInt(sonicParts[1]);
             int sonicF = Integer.parseInt(sonicParts[2]);
-            if (sonicL > 200) sonicL = 0;
-            if (sonicR > 200) sonicR = 0;
-            if (sonicF > 200) sonicF = 0;
+            if (sonicL > 200) sonicL = -1;
+            if (sonicR > 200) sonicR = -1;
+            if (sonicF > 200) sonicF = -1;
             SonicValue sonicValue = new SonicValue(
                     sonicL,
                     sonicR,
