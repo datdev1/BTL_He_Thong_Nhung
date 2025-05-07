@@ -11,7 +11,7 @@ public class MapModel {
     // Size of each grid box in pixel
     public static final int squareSize = (int) mapShapeSize/numberGridBox;
 
-    private float deltaPaint = 0.25F;
+    private float deltaPaint = 0.15F;
     // Initiate map
     private float[][] map = new float[numberGridBox][numberGridBox];
     // Each grid box size is 10 cm in real life
@@ -208,7 +208,6 @@ public class MapModel {
 
         while (true) {
             if (x0 >= 0 && y0 >= 0 && x0 < map.length && y0 < map[0].length) {
-
                 if(linePaint == 1){
                     map[x0][y0] = linePaint;
                     Log.e("VALIDATE_FLOAT", "x0: " + x0 + " y0: " + y0 + " line: " + linePaint);
@@ -225,17 +224,12 @@ public class MapModel {
                   if(map[x0][y0] != 1){
                       if(map[x0][y0] > 4.1F && map[x0][y0] <= 5.0F) {
                           map[x0][y0] -= deltaPaint;
-                      }else if(map[x0][y0] > 2.1F && map[x0][y0] <= 3.F){
+                      }else if(map[x0][y0] >= 2.0F && map[x0][y0] <3.0F){
                           map[x0][y0] -= deltaPaint;
                       }else{
-                          map[x0][y0] = 0;
+//                          map[x0][y0] = 0;
                       }
                   }
-                } else{
-                    if(map[x0][y0] != 1){
-                        map[x0][y0] = linePaint;
-//                        Log.e("VALIDATE_FLOAT", "x0: " + x0 + " y0: " + y0 + " line: " + linePaint);
-                    }
                 }
             }
 
