@@ -43,6 +43,10 @@ QMC5883LCompass compass;
   VectorInt16 aaReal;     // [x, y, z]            Gravity-free accel sensor measurements
   float ypr[3];           // [yaw, pitch, roll]   Yaw/Pitch/Roll container and gravity vector
 
+  float magStrength;
+  float maxMagStrength = -9999;
+  float yawCompassOffset = 0.0f;
+  bool compassValid = true;
 
 // Travel_distance
 float alphaEn = 1;
@@ -192,6 +196,8 @@ void setup()
   playnote.play(988);
   playnote.play(1047);
 
+
+  trySetYawCompassOffset();
   // xTaskCreatePinnedToCore(
   //   gy87Task,             // Task function
   //   "GY-87 Task",         // Name
@@ -217,6 +223,7 @@ void loop()
   thoigian = millis();
 
   travel_distance = (((float)dem2 / 20.0) * (duong_kinh_banh_xe * 3.14)) * alphaEn;
+  isMagneticFieldValid();
 
   if (thoigian - hientai >= timecho)
   {
@@ -350,8 +357,8 @@ void sendAllInformation()
     // Dữ liệu con quay hồi chuyển
     message += "Gyro: [X: " + String(gyroX) + "; Y: " + String(gyroY) + "; Z: " + String(gyroZ) + "]\n";
     
-    message += "YPR: [Y: " + String(ypr[0] * 180/M_PI, 2) + "; P: " + String(ypr[1] * 180/M_PI, 2) + "; R: " + String(ypr[2] * 180/M_PI, 2) + "]\n";
-
+    // message += "YPR: [Y: " + String(ypr[0] * 180/M_PI, 2) + "; P: " + String(ypr[1] * 180/M_PI, 2) + "; R: " + String(ypr[2] * 180/M_PI, 2) + "]\n";
+    message += "YPR: [Y: " + String(getYawCorrected(), 2) + "; P: " + String(ypr[1] * 180/M_PI, 2) + "; R: " + String(ypr[2] * 180/M_PI, 2) + "]\n";
     float altitude = calculateAltitude(float(pressure)/100, temp);
     message += "Temp: " + String(temp) + "'C; Pres: " + String(float(pressure)/100) + "Pa; Alti" + String(altitude, 2) + "m\n";
   }
@@ -361,7 +368,9 @@ void sendAllInformation()
   message += "Compass: [X: " + String(compassX)
            + "; Y: " + String(compassY)
            + "; Z: " + String(compassZ)
-           + "; Heading: " + String(compassHeading) + "]";
+           + "; Heading: " + String(compassHeading) + "]\n";
+  message += "Strength: " + String(magStrength, 2) + 
+           + "; MaxStre: " + String(maxMagStrength, 2);
 
   if (isCalibration)
   {
@@ -535,3 +544,57 @@ float calculateAltitude(float pressure, float temperature) {
   const float P0 = 1013.25; // Áp suất chuẩn ở mực nước biển (hPa)
   return (temperature + 273.15) / 0.0065 * (1 - pow(pressure / P0, 1.0 / 5.257));
 }
+
+
+// Hiẹu chinh Yaw vi gyro driff
+
+float normalizeAngle(float angle) {
+  // Chuyển [-180, 180] → [0, 360]
+  if (angle < 0) return angle + 360.0;
+  return angle;
+}
+
+float toAngle180(float angle360) {
+  angle360 = fmod(angle360, 360.0f);  // Giữ trong khoảng [0, 360)
+  if (angle360 > 180.0f) {
+    angle360 -= 360.0f;
+  }
+  return angle360;
+}
+
+void trySetYawCompassOffset() {
+
+  float rawYawDeg = ypr[0]* 180/M_PI;
+  float compassHeadingDeg = (float) compassHeading;
+  rawYawDeg = normalizeAngle(rawYawDeg);
+  compassHeadingDeg = normalizeAngle(compassHeadingDeg);
+  yawCompassOffset = compassHeadingDeg - rawYawDeg;
+
+  Serial.print("Yaw-Compass Offset Initialized: ");
+  Serial.println(yawCompassOffset);
+}
+
+void isMagneticFieldValid() {
+  magStrength = sqrt(compassX*compassX + compassY*compassY + compassZ*compassZ);
+  compassValid = magStrength >= 20 && magStrength <= 3000;  // µT, giới hạn tùy môi trường
+  if(maxMagStrength < magStrength)
+    maxMagStrength = magStrength;
+}
+
+float getYawCorrected() {
+  float rawYawDeg = ypr[0]* 180/M_PI;
+  float compassHeadingDeg = (float) compassHeading;
+
+  if (!compassValid) return rawYawDeg; // Không hiệu chỉnh nếu từ trường nhiễu
+
+  rawYawDeg = normalizeAngle(rawYawDeg);
+  compassHeadingDeg = normalizeAngle(compassHeadingDeg);
+
+  float expectedYaw = compassHeadingDeg - yawCompassOffset;
+  float error = expectedYaw - rawYawDeg;
+  float correctedYaw = rawYawDeg + error;
+
+  return toAngle180(correctedYaw);
+}
+
+
