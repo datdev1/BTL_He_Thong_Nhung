@@ -1,3 +1,6 @@
+// #define CONFIG_BT_ENABLED 1
+// #define CONFIG_BT_SPP_ENABLED 1
+
 #include "BluetoothSerial.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 BluetoothSerial SerialBT;
