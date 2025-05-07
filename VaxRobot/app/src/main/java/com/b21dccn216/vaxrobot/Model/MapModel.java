@@ -28,6 +28,7 @@ public class MapModel {
                 0,
                 squareSize
         );
+        robotModel.setSonicValue(new SonicValue(-1, -1, -1));
     }
 
     public void setRobotAngle(float angle){

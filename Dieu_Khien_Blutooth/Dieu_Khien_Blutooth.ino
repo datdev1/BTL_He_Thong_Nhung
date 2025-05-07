@@ -357,8 +357,8 @@ void sendAllInformation()
     // Dữ liệu con quay hồi chuyển
     message += "Gyro: [X: " + String(gyroX) + "; Y: " + String(gyroY) + "; Z: " + String(gyroZ) + "]\n";
     
-    // message += "YPR: [Y: " + String(ypr[0] * 180/M_PI, 2) + "; P: " + String(ypr[1] * 180/M_PI, 2) + "; R: " + String(ypr[2] * 180/M_PI, 2) + "]\n";
-    message += "YPR: [Y: " + String(getYawCorrected(), 2) + "; P: " + String(ypr[1] * 180/M_PI, 2) + "; R: " + String(ypr[2] * 180/M_PI, 2) + "]\n";
+    message += "YPR: [Y: " + String(ypr[0] * 180/M_PI, 2) + "; P: " + String(ypr[1] * 180/M_PI, 2) + "; R: " + String(ypr[2] * 180/M_PI, 2) + "]\n";
+    // message += "YPR: [Y: " + String(getYawCorrected(), 2) + "; P: " + String(ypr[1] * 180/M_PI, 2) + "; R: " + String(ypr[2] * 180/M_PI, 2) + "]\n";
     float altitude = calculateAltitude(float(pressure)/100, temp);
     message += "Temp: " + String(temp) + "'C; Pres: " + String(float(pressure)/100) + "Pa; Alti" + String(altitude, 2) + "m\n";
   }
@@ -369,8 +369,7 @@ void sendAllInformation()
            + "; Y: " + String(compassY)
            + "; Z: " + String(compassZ)
            + "; Heading: " + String(compassHeading) + "]\n";
-  message += "Strength: " + String(magStrength, 2) + 
-           + "; MaxStre: " + String(maxMagStrength, 2);
+  // message += "Stre: " + String(magStrength, 2) + "; Max: " + String(maxMagStrength, 2) + "\n";
 
   if (isCalibration)
   {
