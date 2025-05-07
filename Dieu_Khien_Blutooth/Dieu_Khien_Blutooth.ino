@@ -334,7 +334,7 @@ void sendAllInformation()
   if(!isCalibration )
   {
     message += "Speed: " + String(tocdo, 2) + "; ";
-    message += "TravelDis: " + String(travel_distance, 2) + "\n";
+    message += "TravelDis: " + String(travel_distance, 2) + "; " + "dieu_khien:" + dieu_khien  + "\n";
     message += "SpeedMotor: " + String(speed) + "; ";
     message += "Delta_speed: " + String(delta_speed) + "; ";
     message += "Vong: " + String((float)dem2 / 20.0, 2) + "\n";

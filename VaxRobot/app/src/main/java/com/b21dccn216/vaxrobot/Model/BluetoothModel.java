@@ -152,6 +152,10 @@ public class BluetoothModel {
 //        executorService.shutdown();
     }
 
+    public boolean isConnected(){
+        return bluetoothSocket != null && bluetoothSocket.isConnected();
+    }
+
     public interface ConnectionCallBack{
         void onSuccess();
         void onFailure(String message);

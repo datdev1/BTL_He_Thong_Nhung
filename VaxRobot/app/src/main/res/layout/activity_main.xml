@@ -21,15 +21,32 @@
         android:id="@+id/buttonMusic"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:contentDescription="@string/app_name"
+
         android:src="@drawable/music_icon"
-
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/leftRight"
 
-        />
+        app:layout_constraintEnd_toStartOf="@id/leftRight" />
 
     <LinearLayout
         android:id="@+id/topPanel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/leftPanel"
+        android:gravity="center_vertical">
+        <View
+            android:id="@+id/measure"
+            android:layout_width="32dp"
+            android:alpha="0.5"
+            android:layout_height="32dp"
+            android:background="@drawable/baseline_calculate_24"
+            android:layout_margin="8dp"
+            />
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/leftPanel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -54,15 +71,15 @@
             android:id="@+id/status"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:src="@drawable/baseline_do_not_disturb_24"
+            android:src="@drawable/baseline_bluetooth_disabled_24"
             android:layout_margin="8dp" />
 
-        <ImageView
-            android:id="@+id/select"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/baseline_info_24"
-            android:layout_margin="8dp" />
+<!--        <ImageView-->
+<!--            android:id="@+id/select"-->
+<!--            android:layout_width="32dp"-->
+<!--            android:layout_height="32dp"-->
+<!--            android:src="@drawable/baseline_info_24"-->
+<!--            android:layout_margin="8dp" />-->
 
 
         <ImageView
@@ -210,7 +227,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         android:orientation="vertical"
         android:background="@color/beigeColor"
-        >
+        tools:ignore="ExtraText">
         <ImageView
             android:src="@drawable/baseline_keyboard_double_arrow_up_24"
             android:layout_width="80dp"
@@ -223,7 +240,7 @@
             android:layout_height="2dp"
             app:dividerColor="@color/whiteColor"
             />
-        <ImageView
+        d<ImageView
             android:src="@drawable/baseline_keyboard_double_arrow_down_24"
             android:layout_width="80dp"
             android:layout_height="80dp"

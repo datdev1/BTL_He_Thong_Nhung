@@ -1,5 +1,10 @@
 package com.b21dccn216.vaxrobot.View;
 
+import static com.b21dccn216.vaxrobot.Model.MapModel.mapShapeSize;
+import static com.b21dccn216.vaxrobot.Model.MapModel.numberGridBox;
+import static com.b21dccn216.vaxrobot.Model.MapModel.squareSize;
+import static com.b21dccn216.vaxrobot.Model.MapModel.squareSizeCm;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -16,25 +21,14 @@ import android.view.View;
 
 import androidx.annotation.NonNull;
 
+import com.b21dccn216.vaxrobot.Model.MapModel;
 import com.b21dccn216.vaxrobot.Model.RobotModel;
+import com.b21dccn216.vaxrobot.Model.SonicValue;
 import com.b21dccn216.vaxrobot.R;
 
 public class MapView extends View {
 
-    // Number of grid box
-    private final int numberGridBox =  1000;
-    // Map size : mapShapeSize x mapShapeSize
-    private final float mapShapeSize = 100000f;
-    // Each grid box size is 10 cm in real life
-    public static final float squareSizeCm = 10;
-    // Size of each grid box in pixel
-    private final int squareSize = (int) mapShapeSize/numberGridBox;
-
-    // Initiate map
-    private int[][] map = new int[numberGridBox][numberGridBox];
-
-    // Robot Model to save position -> index in map, angle
-    private RobotModel robotModel;
+    private MapModel mapModel;
     // Image of robot
     private  Bitmap robotBitmap = BitmapFactory
             .decodeResource(getResources(), R.drawable.car);
@@ -58,6 +52,11 @@ public class MapView extends View {
     private int activePointerId = -1;
     private ScaleGestureDetector scaleDetector;
 
+    // Variable for calculating distance
+    private float[] firstPoint = null;
+    private float[] lastPoint = null;
+    private boolean isCalculatingMode = false;
+
     public MapView(Context context) {
         super(context);
         init(context);
@@ -75,6 +74,8 @@ public class MapView extends View {
 
 
     private void init(Context context) {
+        // init map Model
+        mapModel = new MapModel();
         // Init paint
         pathPaint = new Paint();
         pathPaint.setColor(getResources().getColor(R.color.tealColor));
@@ -97,58 +98,85 @@ public class MapView extends View {
         spacePaint.setColor(getResources().getColor(R.color.greenColor));
         spacePaint.setStrokeWidth(5f);
 
-        //
+        // scale detector for zoom, pan
         scaleDetector = new ScaleGestureDetector(context, new ScaleListener());
+    }
 
-        // Initial, robot is in map[500][500]
-        robotModel = new RobotModel(
-                numberGridBox/2,    // 500
-                numberGridBox/2,        //500
-                0,                      // distance not use yet, we can use this to make robot move
-                0,                       // angle -> 0 is up
-                squareSize              //
-        );
+    public void setMapModel(MapModel mapModel){
+        this.mapModel = mapModel;
+        invalidate();
     }
 
     @SuppressLint("ResourceAsColor")
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
+        if(mapModel == null) return;
 
+        float[][] map = mapModel.getMap();
         canvas.save();
 
         canvas.translate(translateX, translateY);
         canvas.scale(scaleFactor, scaleFactor);
 
+
+
         // Draw path / map content
         for(int i = 0; i<map.length; i++){
             for(int j = 0; j<map[i].length; j++){
+                if(map[i][j] != 0){
+                    Log.i("MAP_VALUE", "i: " + i + " j: " + j + " value: " + map[i][j] + "");
+                }
                 if(map[i][j] == 1){
                     canvas.drawRect(i*squareSize, j*squareSize,
                             i*squareSize + squareSize, j*squareSize + squareSize,
                             pathPaint);
-                }else if(map[i][j] == 2){
+                }else if(map[i][j] >= 2.0f && map[i][j] <= 3.0f){
+                    int alpha = (int) ((map[i][j] - 2.0F)*100);
+                    spacePaint.setAlpha(alpha);
                     canvas.drawRect(i*squareSize, j*squareSize,
                             i*squareSize + squareSize, j*squareSize + squareSize,
                             spacePaint);
-                }else if (map[i][j] == 3){
+                    spacePaint.setAlpha(100);
+                }else if (map[i][j] >= 4.F && map[i][j] <= 5.F){
+                    int alpha = (int) ((map[i][j] - 4.0)*100);
+                    obstaclePaint.setAlpha(alpha);
                     canvas.drawRect(i*squareSize, j*squareSize,
                             i*squareSize + squareSize, j*squareSize + squareSize,
                             obstaclePaint);
+                    obstaclePaint.setAlpha(100);
+                }else if(map[i][j] == 7){
+                    canvas.drawRect(i*squareSize, j*squareSize,
+                            i*squareSize + squareSize, j*squareSize + squareSize,
+                            borderPaint);
                 }
             }
         }
 
         drawGrid(canvas);
         drawRobot(canvas);
+        if(isCalculatingMode){
+            if (firstPoint != null) {
+                canvas.drawCircle(firstPoint[0], firstPoint[1], squareSize / 4f, borderPaint);
+            }
+            if (lastPoint != null) {
+                canvas.drawCircle(lastPoint[0], lastPoint[1], squareSize / 4f, borderPaint);
+                canvas.drawLine(firstPoint[0], firstPoint[1], lastPoint[0], lastPoint[1], borderPaint);
+                float dis = calculateDistance(firstPoint, lastPoint)/squareSize*squareSizeCm;
+                borderPaint.setTextSize(48);
+                canvas.drawText(String.format("%.2f", dis) + "cm", (firstPoint[0] + lastPoint[0])/2 + squareSize/3, (firstPoint[1] + lastPoint[1])/2 - squareSize/2, borderPaint);
 
+            }
+        }
         canvas.restore();
     }
 
     private void drawRobot(Canvas canvas){
+        RobotModel robotModel = mapModel.getRobotModel();
         if (robotModel != null && robotBitmap != null) {
-            float x = robotModel.getXAxis();
-            float y = robotModel.getYAxis();
+            int x = (int) robotModel.getXAxis();
+            int y = (int) robotModel.getYAxis();
+            Log.e("VALIDATE_FLOAT", "x: " + x + " y: " + y + " angle: " + robotModel.getAngle());
 
             float centerX = x + (squareSize / 2f);
             float centerY = y + (squareSize / 2f);
@@ -201,7 +229,22 @@ public class MapView extends View {
             case MotionEvent.ACTION_DOWN: {
                 lastTouchX = event.getX();
                 lastTouchY = event.getY();
+                if(isCalculatingMode){
+                    float mapX = (lastTouchX - translateX)/scaleFactor;
+                    float mapY = (lastTouchY - translateY)/scaleFactor;
+                    if(firstPoint == null){
+                        firstPoint = new float[]{mapX, mapY};
+                    }else if(lastPoint == null){
+                        lastPoint = new float[]{mapX, mapY};
+                    }else{
+                        firstPoint = new float[]{mapX, mapY};
+                        lastPoint = null;
+                    }
+
+                }
                 activePointerId = event.getPointerId(0);
+
+                invalidate();
                 break;
             }
             case MotionEvent.ACTION_MOVE: {
@@ -272,7 +315,8 @@ public class MapView extends View {
         }
     }
 
-    public void centerOnPoint() {
+    public void centerOnRobotPosition() {
+        RobotModel robotModel = mapModel.getRobotModel();
         // Ensure scaling is considered
         float viewWidth = getWidth();
         float viewHeight = getHeight();
@@ -283,193 +327,61 @@ public class MapView extends View {
 
         invalidate();
     }
+    public void centeronPoint(float x, float y) {
 
+        // Ensure scaling is considered
+        float viewWidth = getWidth();
+        float viewHeight = getHeight();
 
-    public float getRobotAngle(){return robotModel.getAngle();}
-
-
-    // Update robot position
-    private void updateRobotPosition() {
-//        // TODO: Update map and set index to 1,2,3
-        Log.i("VALIDATE", "Distance received: " + robotModel.getDistance());
-        int[] oldPosition = new int[] { robotModel.getX(), robotModel.getY()};
-        Log.i("VALIDATE", "Old position x: " + robotModel.getX() + " Y: " + robotModel.getY());
-        float[] newPosition = calculateNewPosition(
-                robotModel.getFloatX(), robotModel.getFloatY(),
-                robotModel.getAngle(), robotModel.getDistance());
-
-
-        // TODO : cache decimal
-        robotModel.setFloatX( newPosition[0]);
-        robotModel.setFloatY( newPosition[1]);
-        Log.i("VALIDATE_FLOAT", "New float position x: " + robotModel.getFloatX() + " Y: " + robotModel.getFloatY());
-        robotModel.setX((int) newPosition[0]);
-        robotModel.setY((int) newPosition[1]);
-
-        Log.i("VALIDATE", "New position x: " + robotModel.getX() + " Y: " + robotModel.getY());
-        drawLine(oldPosition[0], oldPosition[1], robotModel.getX(), robotModel.getY(), 1);
-//        centerOnPoint(robotModel.getXAxis(), robotModel.getYAxis());
-    }
-
-
-    private float[] calculateNewPosition(
-            float x, float y,
-            float angleDeg,
-            float distanceCm) {
-        // Convert angle to radians
-        float angleRad = (float) Math.toRadians(angleDeg);
-
-        // Calculate delta in cm
-        float dx = (float) (distanceCm * Math.sin(angleRad));
-        float dy = (float) (distanceCm * Math.cos(angleRad));
-
-        // Convert cm to grid index delta
-        float deltaX =  (dx / squareSizeCm); // 10cm per cell
-        float deltaY = (dy / squareSizeCm);
-
-        String action = robotModel.getAction();
-        // Y axis usually increases downward in arrays, so invert dy if needed
-        float newX = 0, newY = 0;
-        if(action.equals("F")){
-            newX = x + deltaX;
-            newY = y - deltaY; // subtract if y=0 is top of map
-            return new float[]{newX, newY};
-        }else if(action.equals("B")){
-            newX = x - deltaX;
-            newY = y + deltaY; // subtract if y=0 is top of map
-            return new float[]{newX, newY};
-        }else{
-            Log.d("WHEN_ROLL", "action: " + action);
-            return new float[]{x, y};
-        }
-    }
-
-
-    private int[] calculateWallPosition(
-            int x, int y,
-            double angleDeg,
-            double distanceCm) {
-        // Convert angle to radians
-        double angleRad = Math.toRadians(angleDeg);
-
-        // Calculate delta in cm
-        double dx = distanceCm * Math.sin(angleRad);
-        double dy = distanceCm * Math.cos(angleRad);
-
-        // Convert cm to grid index delta
-        int deltaX = (int) Math.round(dx / 10.0); // 10cm per cell
-        int deltaY = (int) Math.round(dy / 10.0);
-
-
-        // Y axis usually increases downward in arrays, so invert dy if needed
-        int newX = 0, newY = 0;
-        newX = x + deltaX;
-        newY = y - deltaY; // subtract if y=0 is top of map
-        return new int[]{newX, newY};
-
-    }
-
-
-
-    // LinePaint = 1 -> robot has last run from
-    // LinePaint = 2 -> space which is detect by sonic
-    // LinePaint = 3 -> obstacle which is detect by sonic
-    public void drawLine(int originX, int originY, int robotX, int robotY, int linePaint) {
-        int x0 = originX;
-        int y0 = originY;
-        int x1 = robotX;
-        int y1 = robotY;
-
-        int dx = Math.abs(x1 - x0);
-        int dy = Math.abs(y1 - y0);
-        int sx = x0 < x1 ? 1 : -1;
-        int sy = y0 < y1 ? 1 : -1;
-        int err = dx - dy;
-
-        while (true) {
-            if (x0 >= 0 && y0 >= 0 && x0 < map.length && y0 < map[0].length) {
-                if(linePaint == 1){
-                    map[x0][y0] = linePaint;
-                }else{
-                    if(map[x0][y0] != 1){
-                        map[x0][y0] = linePaint;
-                    }
-                }
-            }
-
-            if (x0 == x1 && y0 == y1) break;
-
-            int e2 = 2 * err;
-            if (e2 > -dy) {
-                err -= dy;
-                x0 += sx;
-            }
-            if (e2 < dx) {
-                err += dx;
-                y0 += sy;
-            }
-        }
-    }
-
-    public void setRobotAction(String action){
-        robotModel.setAction(action);
-    }
-
-    public RobotModel getRobotModel() {
-        return robotModel;
-    }
-
-    public void setRawRobotModel(RobotModel robotModelClone) {
-        // TODO: process to call updateRobotPosition
-//        robotModelClone.setAngle(mapAngle(robotModelClone.getAngle()));
-        this.robotModel = robotModelClone;
-        updateRobotPosition();
-
-        // TODO: process sonic value
-
-        // sonic left
-        float angle = (robotModelClone.getAngle() + 270) % 360;
-        Log.d("MapView", "angle: " + angle);
-        int[] leftWall = calculateWallPosition(
-                robotModel.getX(), robotModel.getY(),
-                angle, robotModel.getSonicValue().getLeft());
-        drawLine(robotModel.getX(), robotModel.getY(), leftWall[0], leftWall[1], 2);
-
-        //sonic right
-        float rightAngle = (robotModelClone.getAngle() + 90) % 360;
-        int[] rightWall = calculateWallPosition(
-                robotModel.getX(), robotModel.getY(),
-                rightAngle, robotModel.getSonicValue().getRight());
-        drawLine(robotModel.getX(), robotModel.getY(), rightWall[0], rightWall[1], 2);
-
-        // sonic front
-        int[] frontWall = calculateWallPosition(
-                robotModel.getX(), robotModel.getY(),
-                robotModel.getAngle(), robotModel.getSonicValue().getFront());
-        drawLine(robotModel.getX(), robotModel.getY(), frontWall[0], frontWall[1], 2);
+        // Center formula
+        translateX = (viewWidth / 2f) - (x * scaleFactor);
+        translateY = (viewHeight / 2f) - (y * scaleFactor);
 
         invalidate();
     }
-
-
-//    public float mapAngle(float angle){
-//        if(angle > 360){
-//            angle = angle % 360;
-//        }else if(angle < 0){
-//            angle = 360 + (angle % 360);
-//        }
-//        Log.d("MapView", "Set angle: " + angle);
-//        return angle;
-//
-//    }
 
     public void resetMap(){
-        for(int i = 0; i<map.length; i++){
-            for(int j = 0; j<map[i].length; j++){
-                map[i][j] = 0;
-            }
+        mapModel.resetMap();
+        invalidate();
+    }
+
+    public void moveRobotCar(float distance, String action){
+        mapModel.moveCar(distance, action);
+        invalidate();
+    }
+
+    public void setRobotAngle(float angle){
+        mapModel.setRobotAngle(angle);
+        invalidate();
+    }
+
+    public void processSonicValue(SonicValue s){
+        mapModel.processSonicValue(s);
+        invalidate();
+    }
+
+    public void updateRobotModel(RobotModel robotModel){
+        mapModel.updateRobotModel(robotModel);
+        invalidate();
+    }
+
+    public boolean isCalculatingMode() {
+        return isCalculatingMode;
+    }
+
+    public void setCalculatingMode(boolean calculatingMode) {
+        isCalculatingMode = calculatingMode;
+        if(!isCalculatingMode){
+            firstPoint = null;
+            lastPoint = null;
         }
         invalidate();
+    }
+
+    private float calculateDistance(float[] p1, float[] p2) {
+        float dx = p2[0] - p1[0];
+        float dy = p2[1] - p1[1];
+        return (float) Math.sqrt(dx * dx + dy * dy);
     }
 
 }
